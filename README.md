@@ -2,6 +2,12 @@
 
 A word guessing game for your Slack workspace.
 
+## Installation
+
+[Instructions for creating a webhook-based Slack app coming soon...]
+
+## Development
+
 ### Installation
 
 Choose the Node.js version:
@@ -16,7 +22,7 @@ Install the Vercel CLI:
 npm i -g vercel
 ```
 
-# Development
+### Usage
 
 Run the app locally at the root of the repository:
 
