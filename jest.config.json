@@ -1,0 +1,7 @@
+{
+  "testMatch": ["**/*.test.ts"],
+  "verbose": false,
+  "moduleDirectories": ["node_modules", "<rootDir>"],
+  "preset": "ts-jest",
+  "watchPathIgnorePatterns": ["node_modules"]
+}

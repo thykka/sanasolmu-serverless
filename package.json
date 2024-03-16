@@ -1,14 +1,24 @@
 {
+  "engines": {
+    "node": "^20.0.0"
+  },
   "repository": "https://github.com/vercel/examples.git",
   "license": "MIT",
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "vercel dev"
+    "start": "vercel dev",
+    "test": "jest --watch"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.12",
     "@types/node": "^20.11.27",
     "@vercel/node": "^3.0.22",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
     "typescript": "^5.4.2"
+  },
+  "dependencies": {
+    "@vercel/kv": "^1.0.1"
   }
 }
