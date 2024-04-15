@@ -12,6 +12,14 @@
   - [ ] Word language
   - [ ]
 
+## Integrations
+
+- [x] Create Slack app
+  - [x] Handle URL verification
+  - [x] Read message events
+  - [ ] Store OAUTH2 tokens for each workspace?
+  - [ ] Send messages to channel
+
 ## Game
 
 - [ ] Instances
