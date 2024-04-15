@@ -13,10 +13,11 @@ export const handler = async (req: VercelRequest, res: VercelResponse) => {
     url: req.url,
   });
   const { body } = req;
+  if (!body || typeof body === "string") return res.end();
   if (body.type === "url_verification") {
     return res.send(req.body.challenge);
   } else if (body.type === "event_callback") {
-    if (isValidSlackRequest(req) && body.event.type === "message") {
+    if (isValidSlackRequest(req) && body.event?.type === "message") {
       await Slack.chat.postMessage({
         channel: body.event.channel,
         attachments: null,
