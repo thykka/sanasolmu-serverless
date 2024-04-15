@@ -2,8 +2,7 @@ import crypto from "crypto";
 import { WebClient } from "@slack/web-api";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-const { SLACK_SIGNING_SECRET } = process.env;
-if (!SLACK_SIGNING_SECRET) throw Error("Signing secret not found");
+if (!process.env.SLACK_SIGNING_SECRET) throw Error("Signing secret not found");
 const Slack = new WebClient(process.env.SLACK_BOT_TOKEN);
 
 export const handler = async (req: VercelRequest, res: VercelResponse) => {
@@ -48,7 +47,7 @@ const isValidSlackRequest = (req: VercelRequest): boolean => {
   }
   const base = `v0:${timestamp}:${req.body}`;
   const hmac = crypto
-    .createHmac("sha256", SLACK_SIGNING_SECRET)
+    .createHmac("sha256", process.env.SLACK_SIGNING_SECRET)
     .update(base)
     .digest("hex");
   const computedSignature = `v0=${hmac}`;
