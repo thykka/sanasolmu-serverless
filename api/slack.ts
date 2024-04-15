@@ -12,11 +12,14 @@ export const handler = async (req: VercelRequest, res: VercelResponse) => {
     url: req.url,
   });
   const { body } = req;
-  if (!body || typeof body === "string") return res.end();
+  if (!body) {
+    res.statusCode = 400;
+    return res.end();
+  }
   if (body.type === "url_verification") {
     return res.send(req.body.challenge);
   } else if (body.type === "event_callback") {
-    if (isValidSlackRequest(req) && body.event?.type === "message") {
+    if ((await isValidSlackRequest(req)) && body.event?.type === "message") {
       await Slack.chat.postMessage({
         channel: body.event.channel,
         attachments: null,
@@ -25,13 +28,29 @@ export const handler = async (req: VercelRequest, res: VercelResponse) => {
       return res.send("OK");
     }
   }
+  res.statusCode = 500;
   res.end();
 };
 
-const isValidSlackRequest = (req: VercelRequest): boolean => {
+const getRawBody = (req: VercelRequest): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    let rawData = "";
+    req.on("data", (chunk) => {
+      rawData += chunk;
+    });
+    req.on("end", () => {
+      resolve(rawData);
+    });
+    req.on("error", (error) => {
+      reject(error);
+    });
+  });
+};
+
+const isValidSlackRequest = async (req: VercelRequest): Promise<boolean> => {
   const rawTimestamp = req.headers["x-slack-request-timestamp"];
   if (!rawTimestamp || Array.isArray(rawTimestamp) || rawTimestamp.length < 1) {
-    console.log("Invalid timestamp");
+    console.log("Invalid timestamp", (Date.now() / 1000) | 0);
     return false;
   }
   const timestamp = parseInt(rawTimestamp, 10);
@@ -45,14 +64,14 @@ const isValidSlackRequest = (req: VercelRequest): boolean => {
     console.log("Message is too old");
     return false;
   }
-  const base = `v0:${timestamp}:${req.body}`;
+  const base = `v0:${timestamp}:${await getRawBody(req)}`;
   const hmac = crypto
     .createHmac("sha256", process.env.SLACK_SIGNING_SECRET)
     .update(base)
     .digest("hex");
   const computedSignature = `v0=${hmac}`;
   if (computedSignature !== signature) {
-    console.log("Signature doesn't match", computedSignature, signature);
+    console.log("Signature doesn't match");
     return false;
   }
   return true;
