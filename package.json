@@ -26,6 +26,7 @@
     "typescript-eslint": "^7.4.0"
   },
   "dependencies": {
+    "@slack/web-api": "^7.0.3",
     "@vercel/kv": "^1.0.1",
     "@vercel/node": "^3.0.22",
     "dotenv": "^16.4.5"
