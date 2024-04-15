@@ -52,7 +52,7 @@ const isValidSlackRequest = (req: VercelRequest): boolean => {
     .digest("hex");
   const computedSignature = `v0=${hmac}`;
   if (computedSignature !== signature) {
-    console.log("Signature doesn't match");
+    console.log("Signature doesn't match", computedSignature, signature);
     return false;
   }
   return true;
