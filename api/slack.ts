@@ -2,15 +2,9 @@ import crypto from "crypto";
 import { WebClient } from "@slack/web-api";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-if (!process.env.SLACK_SIGNING_SECRET) throw Error("Signing secret not found");
 const Slack = new WebClient(process.env.SLACK_BOT_TOKEN);
 
 export const handler = async (req: VercelRequest, res: VercelResponse) => {
-  console.log({
-    body: req.body,
-    headers: req.headers,
-    url: req.url,
-  });
   const { body } = req;
   if (!body) {
     res.statusCode = 400;
@@ -28,23 +22,9 @@ export const handler = async (req: VercelRequest, res: VercelResponse) => {
       return res.send("OK");
     }
   }
-  res.statusCode = 500;
+  console.log({ body });
+  res.statusCode = 400;
   res.end();
-};
-
-const getRawBody = (req: VercelRequest): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    let rawData = "";
-    req.on("data", (chunk) => {
-      rawData += chunk;
-    });
-    req.on("end", () => {
-      resolve(rawData);
-    });
-    req.on("error", (error) => {
-      reject(error);
-    });
-  });
 };
 
 const isValidSlackRequest = async (req: VercelRequest): Promise<boolean> => {
@@ -75,6 +55,21 @@ const isValidSlackRequest = async (req: VercelRequest): Promise<boolean> => {
     return false;
   }
   return true;
+};
+
+const getRawBody = (req: VercelRequest): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    let rawData = "";
+    req.on("data", (chunk) => {
+      rawData += chunk;
+    });
+    req.on("end", () => {
+      resolve(rawData);
+    });
+    req.on("error", (error) => {
+      reject(error);
+    });
+  });
 };
 
 export default handler;
