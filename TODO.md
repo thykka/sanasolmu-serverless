@@ -31,3 +31,7 @@
 ## Game rules
 
 - [ ] Rethink economy - buying hints should have a meaningful cost?
+
+https://app.slack.com/client/T06V1HD2ZS4/C06U9S72Y13
+https://vercel.com/thykkas-projects/sanasolmu-serverless/settings/environment-variables
+https://slack.dev/node-slack-sdk/web-api#new-way

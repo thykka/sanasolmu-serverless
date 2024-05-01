@@ -1,67 +1,63 @@
+console.log(Date.now(), "words.ts imports");
+
 import {} from "dotenv";
 import { readFileSync } from "fs";
-import { kv } from "@vercel/kv";
+import Storage from "./storage.js";
 
+console.log(Date.now(), "words.ts");
+
+const StorageKey = "words-";
+const Languages = ["en", "fi"] as const;
+type Language = (typeof Languages)[number];
 type WordObject = {
   word: string;
+  language: Language;
 };
 
-const getStorage = (language = "en") => `dictionary-${language}`;
+export const parseLanguage = (language: string): Language =>
+  Languages.find((l) => l === language) ?? "en";
 
-export const formatWordForStorage = (word: string, language = "en") => {
-  const wordObj = {
+export const formatWordObject = (
+  word: string,
+  language: Language,
+): WordObject => {
+  const wordObj: WordObject = {
     word,
+    language,
   };
   return wordObj;
 };
 
-export const parseLanguage = (language) =>
-  ["en", "fi"].find((l) => l === language) ?? "en";
-
-/**
- * split an object into smaller chunks
- */
-const partition = (object, maxLength: number): Record<string, WordObject>[] => {
-  const partitions = [];
-  let currentPartition = {};
-  Object.entries(object).forEach(([key, value]) => {
-    if (Object.keys(currentPartition).length < maxLength) {
-      currentPartition[key] = value;
-    } else {
-      partitions.push(currentPartition);
-      currentPartition = { [key]: value };
-    }
-  });
-  if (Object.keys(currentPartition).length > 0) {
-    partitions.push(currentPartition);
-  }
-  return partitions;
+const getStorage = async (language: Language) => {
+  return await Storage.initialize(StorageKey + language);
 };
 
-export const readWordsFromFile = (language) => {
+export const readWordsFromFile = (language: Language): WordObject[] => {
   const file = readFileSync(`./wordlist/${language}.txt`).toString("utf8");
   return file
     .split("\n")
     .filter((row) => row.length > 0)
-    .map((row) => formatWordForStorage(row, language));
+    .map((row) => formatWordObject(row, language));
 };
 
-export const populateWords = async (language = "en"): Promise<number> => {
-  const storage = getStorage(language);
+export const populateWords = async (language: Language): Promise<number> => {
   const wordList = readWordsFromFile(language);
-  const partitions = partition(wordList, 10000);
-  Promise.all(
-    partitions.map((wordListPart) =>
-      kv.hset(storage, wordListPart).then((v) => console.log(v)),
+  const storage = await getStorage(language);
+  await Promise.all(
+    wordList.map((wordObject) =>
+      Storage.saveItem(storage, wordObject.word, wordObject),
     ),
   );
   return Object.keys(wordList).length;
 };
 
-export const getAllWords = async (language = "en"): Promise<WordObject[]> => {
-  return readWordsFromFile(language);
+export const getAllWords = async (language: Language) => {
+  const storage = await getStorage(language);
+  const result = await Storage.loadItems(storage);
+  if (!Array.isArray(result)) return [];
+  return result.map(({ word }) => word);
 };
 
 export const getWord = (length: number): string => {
-  return "wt";
+  return "x".repeat(length);
 };

@@ -3,5 +3,5 @@
   "verbose": false,
   "moduleDirectories": ["node_modules", "<rootDir>"],
   "preset": "ts-jest",
-  "watchPathIgnorePatterns": ["node_modules"]
+  "watchPathIgnorePatterns": ["node_modules", "storage"]
 }
