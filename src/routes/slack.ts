@@ -27,8 +27,8 @@ router.post("/", async (request: Request, response: Response) => {
       return response.send("OK");
     }
     */
-    console.log("Unknown event type", request.body.event);
-    return response.sendStatus(501);
+    console.warn("Unknown event type", request.body.event);
+    return response.send("OK");
   }
   console.log("Unknown request type", request.body);
   response.sendStatus(400);
