@@ -24,7 +24,7 @@
   - [x] React to messages
   - [x] Chat commands with arguments
   - [x] Observe single word messages
-  - [ ] Store OAUTH2 tokens for each workspace
+  - [ ] Store [OAUTH2 tokens](https://api.slack.com/authentication/oauth-v2) for each workspace -> [@slack/web-api](https://slack.dev/node-slack-sdk/web-api)
 
 ## Game
 
