@@ -62,6 +62,8 @@ router.post("/", async (request: Request, response: Response) => {
     }
     // TODO: Should we keep a list of client_msg_id + rawTimestamp, to avoid reacting to dupes?
     if (request.body.event?.type === "message") {
+      // TODO: pass timestamp to event handler, reactions need it
+      console.log("event", request.body.event);
       handleMessage(request.body.event);
       return response.send("OK");
     }

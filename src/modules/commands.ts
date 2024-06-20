@@ -45,6 +45,11 @@ export const processCommand = async (
   if (!foundCommand) {
     // TODO: Use proper error throwing
     console.warn("Unknown command type", command.type);
+    client.reactions.add({
+      channel,
+      timestamp: "1",
+      name: "thinking_face",
+    });
     return;
   }
   foundCommand.fn(client, command, channel, user);

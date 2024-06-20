@@ -11,6 +11,7 @@ const port: number = parseInt(process.env.API_PORT) || 3000;
 // Test command
 addCommand("hello", {
   fn: async (client, command, channel, user) => {
+    // TODO: Cache users locally, so we can spare lots of requests
     const response = await client.users.info({ user });
     const { id, name, real_name, team_id, deleted } = response?.user;
     const text = `Hello, ${command.args[0] === "doxx" ? real_name : name}!`;
