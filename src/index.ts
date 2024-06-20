@@ -1,4 +1,3 @@
-import contentType from "content-type";
 import express, { Application, Request, Response } from "express";
 import getRawBody from "raw-body";
 import slack from "./routes/slack.js";
@@ -22,11 +21,12 @@ addCommand("hello", {
 app.use((req, res, next) => {
   getRawBody(req, (err, body) => {
     if (err) return next(err);
-    req.text = body.toString();
+    const bodyString = body.toString();
+    res.locals.rawBody = bodyString;
     try {
-      req.body = JSON.parse(req.text);
+      req.body = JSON.parse(bodyString);
     } catch (err) {
-      req.body = req.text;
+      req.body = bodyString;
     }
     next();
   });

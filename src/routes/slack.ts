@@ -1,6 +1,7 @@
-import crypto, { sign } from "crypto";
+import crypto from "crypto";
 import { WebClient } from "@slack/web-api";
-import { Router, Request, Response } from "express";
+import type { Request, Response } from "express";
+import { Router } from "express";
 import { parseCommand, processCommand } from "../modules/commands.js";
 
 const Slack = new WebClient(process.env.SLACK_BOT_TOKEN);
@@ -23,21 +24,46 @@ type SlackMessageBlock = {
   block_id: string;
   elements?: Array<RichTextElement | unknown>;
 };
-type SlackMessageEvent = {
-  user: string;
-  channel: string;
-  text: string;
-  blocks?: Array<SlackMessageBlock | unknown>;
+type SlackEventCommon = {
+  ts: string;
+  event_ts: string;
+  type: string;
+  user?: string;
   bot_id?: string;
   app_id?: string;
-  team: string;
-  event_ts: string;
+  channel?: string;
+  subtype?: string;
+  channel_type?: string;
+  team?: string;
+};
+type SlackMessageEvent = SlackEventCommon & {
+  text: string;
+  blocks?: Array<SlackMessageBlock | unknown>;
+};
+type SlackChannelJoinEvent = SlackEventCommon & {
+  subtype: "channel_join";
 };
 
-const handleMessage = async (messageEvent: SlackMessageEvent) => {
-  const { user, channel, blocks, bot_id, app_id, text, event_ts } =
-    messageEvent;
-  console.log("event", messageEvent);
+const handleAddChannel = async (
+  joinEvent: SlackChannelJoinEvent,
+): Promise<void> => {
+  console.log("Join", joinEvent);
+};
+
+const handleMessage = async (
+  messageEvent: SlackMessageEvent,
+): Promise<void> => {
+  const {
+    user,
+    channel,
+    blocks,
+    bot_id,
+    app_id,
+    text,
+    ts: timestamp,
+    subtype,
+  } = messageEvent;
+  console.log("Message", messageEvent);
   // We're not interested in any bot messages (prevents infinite loop)
   if (bot_id || app_id) return;
   const [firstBlock] = blocks ?? [];
@@ -48,34 +74,42 @@ const handleMessage = async (messageEvent: SlackMessageEvent) => {
 
   const command = parseCommand(text);
   if (!command) return;
-  await processCommand(Slack, command, channel, user, event_ts);
+  await processCommand(Slack, command, channel, user, timestamp);
 };
 
 router.post("/", async (request: Request, response: Response) => {
-  if (request.body.type === "url_verification") {
-    console.log("Slack URL verification", request.body.challenge);
-    return response.send(request.body.challenge);
-  } else if (request.body.type === "event_callback") {
-    if (
-      !(await isValidSlackRequest(request)) &&
-      process.env.MODE !== "development"
-    ) {
+  const bodyType = request.body?.type;
+  if (bodyType === "url_verification") {
+    const { challenge } = request.body ?? { challenge: ":)" };
+    console.log("Slack URL verification", challenge);
+    return response.send(challenge);
+  } else if (bodyType === "event_callback") {
+    if (!(await isValidSlackRequest(request, response.locals.rawBody))) {
       console.warn("Request failed signature check");
       return response.sendStatus(400);
     }
     // TODO: Should we keep a list of client_msg_id + rawTimestamp, to avoid reacting to dupes?
-    if (request.body.event?.type === "message") {
-      handleMessage(request.body.event);
+    // TODO: Should we ignore out-of-sequence messages?
+    const { event } = request.body;
+    if (!event) return response.sendStatus(400);
+    if (event.type === "message") {
+      if (event.subtype === "channel_join") {
+        handleAddChannel(event as SlackChannelJoinEvent);
+      } else if (typeof event.subtype === "undefined") {
+        handleMessage(event as SlackMessageEvent);
+      } else {
+        // Unknown/irrelevant message type
+      }
       return response.send("OK");
     }
-    console.warn("Unknown event type", request.body.event);
+    console.warn("Unknown event type", event);
     return response.send("OK");
   }
   console.log("Unknown request type", request.body);
   response.sendStatus(400);
 });
 
-const isValidSlackRequest = async (req: Request): Promise<boolean> => {
+const isValidSlackRequest = async (req: Request, rawBody): Promise<boolean> => {
   const rawTimestamp = req.headers["x-slack-request-timestamp"];
   console.log({ rawTimestamp });
   if (!rawTimestamp || Array.isArray(rawTimestamp) || rawTimestamp.length < 1) {
@@ -93,7 +127,8 @@ const isValidSlackRequest = async (req: Request): Promise<boolean> => {
     console.log("Message is too old");
     return false;
   }
-  const base = `v0:${timestamp}:${req.text}`;
+  // .text is added in middleware
+  const base = `v0:${timestamp}:${rawBody}`;
   const hmac = crypto
     .createHmac("sha256", process.env.SLACK_SIGNING_SECRET)
     .update(base)

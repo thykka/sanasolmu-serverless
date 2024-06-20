@@ -18,7 +18,10 @@
   - [x] Handle URL verification
   - [x] Read message events
   - [ ] Store OAUTH2 tokens for each workspace?
-  - [ ] Send messages to channel
+  - [x] Send messages to channel
+  - [x] React to messages
+  - [x] Chat commands with arguments
+  - [x] Observe single word messages
 
 ## Game
 
@@ -27,6 +30,10 @@
   - [ ] NewRound
   - [ ] Guess
   - [ ] Hint
+- Implement new functions
+  - [ ] Guess stats
+  - [ ] Player stats
+  - [ ] Words stats
 
 ## Game rules
 

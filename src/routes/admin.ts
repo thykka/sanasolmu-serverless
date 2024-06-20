@@ -4,19 +4,20 @@ import { parseLanguage, getAllWords, populateWords } from "../modules/words.js";
 const router = Router();
 
 router.use((request, response, next) => {
-  request.authenticated = request.query.secret === process.env.ADMIN_SECRET;
-  if (!request.authenticated) return response.sendStatus(403);
-  request.language = parseLanguage([request.query.language].flat()[0]);
+  if (request.query.secret !== process.env.ADMIN_SECRET)
+    return response.sendStatus(403);
+  const [language] = [request.query.language].flat();
+  response.locals.language = parseLanguage(language.toString());
   next();
 });
 
-router.post("/populate", async (request: Request, response: Response) => {
-  const result = await populateWords(request.language);
+router.post("/populate", async (request, response: Response) => {
+  const result = await populateWords(response.locals.language);
   return response.json({ success: true, result });
 });
 
-router.post("/list", async (request: Request, response: Response) => {
-  const result = await getAllWords(request.language);
+router.post("/list", async (request, response: Response) => {
+  const result = await getAllWords(response.locals.language);
   return response.json({
     success: !!result,
     result,
