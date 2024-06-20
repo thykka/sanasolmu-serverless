@@ -17,16 +17,23 @@ router.post("/", async (request: Request, response: Response) => {
       console.warn("Request failed signature check");
       return response.sendStatus(400);
     }
-    /*
+    // TODO: Should we keep a list of client_msg_id + rawTimestamp, to avoid reacting to dupes?
     if (request.body.event?.type === "message") {
+      const { user, blocks, channel } = request.body.event;
+      console.log(
+        channel,
+        user,
+        blocks.map((block) => block.elements),
+      );
+      /*
       await Slack.chat.postMessage({
         channel: request.body.event.channel,
         attachments: null,
         text: "Hello, World!",
       });
+      */
       return response.send("OK");
     }
-    */
     console.warn("Unknown event type", request.body.event);
     return response.send("OK");
   }
