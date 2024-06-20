@@ -20,11 +20,7 @@ router.post("/", async (request: Request, response: Response) => {
     // TODO: Should we keep a list of client_msg_id + rawTimestamp, to avoid reacting to dupes?
     if (request.body.event?.type === "message") {
       const { user, blocks, channel } = request.body.event;
-      console.log(
-        channel,
-        user,
-        blocks.map((block) => block.elements),
-      );
+      console.log(channel, user, JSON.stringify(blocks, null, 2));
       /*
       await Slack.chat.postMessage({
         channel: request.body.event.channel,
