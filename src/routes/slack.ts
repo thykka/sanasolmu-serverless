@@ -15,35 +15,95 @@ type SlackTextElement = {
 };
 type RichTextElement = {
   type: "rich_text_section";
-  elements: Array<SlackTextElement | SlackUserElement | unknown>;
+  elements?: Array<SlackTextElement | SlackUserElement | unknown>;
 };
 type SlackMessageBlock = {
   type: "rich_text";
   block_id: string;
-  elements: Array<RichTextElement | unknown>;
+  elements?: Array<RichTextElement | unknown>;
 };
 type SlackMessageEvent = {
   user: string;
   channel: string;
-  blocks: Array<SlackMessageBlock | unknown>;
+  text: string;
+  blocks?: Array<SlackMessageBlock | unknown>;
+  bot_id?: string;
+  app_id?: string;
+  team: string;
+};
+
+type Command = {
+  type: string;
+  args: string[];
+};
+type CommandProcessors = Record<
+  string,
+  {
+    fn: (
+      client: typeof Slack,
+      command: Command,
+      channel: string,
+      user: string,
+    ) => Promise<void>;
+  }
+>;
+
+const Commands: CommandProcessors = {
+  hello: {
+    fn: async (client, command, channel, user) => {
+      const userInfo = await client.users.info({ user });
+      console.log({ userInfo });
+      await client.chat.postMessage({
+        channel,
+        text: "Hello, World!",
+        attachments: null,
+      });
+    },
+  },
+  none: {
+    fn: async (client, command, channel, user) => {
+      console.log("(no command)", command.args);
+    },
+  },
+} as const;
+
+const processCommand = async (
+  client: typeof Slack,
+  command: Command,
+  channel,
+  user,
+): Promise<void> => {
+  const foundCommand = Commands[command.type];
+  if (!foundCommand) {
+    console.warn("Unknown command type", command.type);
+    return;
+  }
+  foundCommand.fn(client, command, channel, user);
+};
+const parseCommand = (text: string): Command | null => {
+  const sanitizedText = text.trim();
+  if (!sanitizedText.length) return;
+  const words = sanitizedText.split(" ");
+  if (words.length) {
+    const [type, ...args] = words;
+    return { type, args };
+  }
+  return { type: "none", args: [sanitizedText] };
 };
 
 const handleMessage = async (messageEvent: SlackMessageEvent) => {
-  const { user, channel, blocks } = messageEvent;
+  const { user, channel, blocks, bot_id, app_id, text } = messageEvent;
+  // We're not interested in any bot messages (prevents infinite loop)
+  if (bot_id || app_id) return;
   const [firstBlock] = blocks ?? [];
   // We're only interested in normal messages
   if ((firstBlock as SlackMessageBlock)?.type !== "rich_text") return;
-  const messageBlock = firstBlock as SlackMessageBlock;
-  // All commands should require just one block
-  console.log(JSON.stringify(messageEvent, null, 2));
-  // For debugging purposes..
-  if (user !== "U06U64WEUQN") return;
-  const message = "pong";
-  await Slack.chat.postMessage({
-    channel,
-    text: message,
-    attachments: null,
-  });
+  // Ignore long messages
+  if (text.length >= 256) return;
+
+  const command = parseCommand(text);
+  if (!command) return;
+  await processCommand(Slack, command, channel, user);
 };
 
 router.post("/", async (request: Request, response: Response) => {
