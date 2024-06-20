@@ -5,6 +5,47 @@ import { Router, Request, Response } from "express";
 const Slack = new WebClient(process.env.SLACK_BOT_TOKEN);
 const router = Router();
 
+type SlackUserElement = {
+  type: "user";
+  user_id: string;
+};
+type SlackTextElement = {
+  type: "text";
+  text: string;
+};
+type RichTextElement = {
+  type: "rich_text_section";
+  elements: Array<SlackTextElement | SlackUserElement | unknown>;
+};
+type SlackMessageBlock = {
+  type: "rich_text";
+  block_id: string;
+  elements: Array<RichTextElement | unknown>;
+};
+type SlackMessageEvent = {
+  user: string;
+  channel: string;
+  blocks: Array<SlackMessageBlock | unknown>;
+};
+
+const handleMessage = async (messageEvent: SlackMessageEvent) => {
+  const { user, channel, blocks } = messageEvent;
+  const [firstBlock] = blocks ?? [];
+  // We're only interested in normal messages
+  if ((firstBlock as SlackMessageBlock)?.type !== "rich_text") return;
+  const messageBlock = firstBlock as SlackMessageBlock;
+  // All commands should require just one block
+  console.log(JSON.stringify(messageEvent, null, 2));
+  // For debugging purposes..
+  if (user !== "U06U64WEUQN") return;
+  const message = "pong";
+  await Slack.chat.postMessage({
+    channel,
+    text: message,
+    attachments: null,
+  });
+};
+
 router.post("/", async (request: Request, response: Response) => {
   if (request.body.type === "url_verification") {
     console.log("Slack URL verification", request.body.challenge);
@@ -19,15 +60,7 @@ router.post("/", async (request: Request, response: Response) => {
     }
     // TODO: Should we keep a list of client_msg_id + rawTimestamp, to avoid reacting to dupes?
     if (request.body.event?.type === "message") {
-      const { user, blocks, channel } = request.body.event;
-      console.log(channel, user, JSON.stringify(blocks, null, 2));
-      /*
-      await Slack.chat.postMessage({
-        channel: request.body.event.channel,
-        attachments: null,
-        text: "Hello, World!",
-      });
-      */
+      handleMessage(request.body.event);
       return response.send("OK");
     }
     console.warn("Unknown event type", request.body.event);
