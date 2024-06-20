@@ -31,10 +31,13 @@ type SlackMessageEvent = {
   bot_id?: string;
   app_id?: string;
   team: string;
+  event_ts: string;
 };
 
 const handleMessage = async (messageEvent: SlackMessageEvent) => {
-  const { user, channel, blocks, bot_id, app_id, text } = messageEvent;
+  const { user, channel, blocks, bot_id, app_id, text, event_ts } =
+    messageEvent;
+  console.log("event", messageEvent);
   // We're not interested in any bot messages (prevents infinite loop)
   if (bot_id || app_id) return;
   const [firstBlock] = blocks ?? [];
@@ -45,7 +48,7 @@ const handleMessage = async (messageEvent: SlackMessageEvent) => {
 
   const command = parseCommand(text);
   if (!command) return;
-  await processCommand(Slack, command, channel, user);
+  await processCommand(Slack, command, channel, user, event_ts);
 };
 
 router.post("/", async (request: Request, response: Response) => {
@@ -62,8 +65,6 @@ router.post("/", async (request: Request, response: Response) => {
     }
     // TODO: Should we keep a list of client_msg_id + rawTimestamp, to avoid reacting to dupes?
     if (request.body.event?.type === "message") {
-      // TODO: pass timestamp to event handler, reactions need it
-      console.log("event", request.body.event);
       handleMessage(request.body.event);
       return response.send("OK");
     }

@@ -39,6 +39,7 @@ export const processCommand = async (
   command: Command,
   channel,
   user,
+  timestamp: string,
   commands = Commands,
 ): Promise<void> => {
   const foundCommand = commands[command.type];
@@ -47,7 +48,7 @@ export const processCommand = async (
     console.warn("Unknown command type", command.type);
     client.reactions.add({
       channel,
-      timestamp: "1",
+      timestamp,
       name: "thinking_face",
     });
     return;
