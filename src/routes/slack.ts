@@ -1,6 +1,7 @@
 import crypto, { sign } from "crypto";
 import { WebClient } from "@slack/web-api";
 import { Router, Request, Response } from "express";
+import { parseCommand, processCommand } from "../modules/commands.js";
 
 const Slack = new WebClient(process.env.SLACK_BOT_TOKEN);
 const router = Router();
@@ -30,65 +31,6 @@ type SlackMessageEvent = {
   bot_id?: string;
   app_id?: string;
   team: string;
-};
-
-type Command = {
-  type: string;
-  args: string[];
-};
-type CommandProcessors = Record<
-  string,
-  {
-    fn: (
-      client: typeof Slack,
-      command: Command,
-      channel: string,
-      user: string,
-    ) => Promise<void>;
-  }
->;
-
-const Commands: CommandProcessors = {
-  hello: {
-    fn: async (client, command, channel, user) => {
-      const userInfo = await client.users.info({ user });
-      console.log({ userInfo });
-      await client.chat.postMessage({
-        channel,
-        text: "Hello, World!",
-        attachments: null,
-      });
-    },
-  },
-  none: {
-    fn: async (client, command, channel, user) => {
-      console.log("(no command)", command.args);
-    },
-  },
-} as const;
-
-const processCommand = async (
-  client: typeof Slack,
-  command: Command,
-  channel,
-  user,
-): Promise<void> => {
-  const foundCommand = Commands[command.type];
-  if (!foundCommand) {
-    console.warn("Unknown command type", command.type);
-    return;
-  }
-  foundCommand.fn(client, command, channel, user);
-};
-const parseCommand = (text: string): Command | null => {
-  const sanitizedText = text.trim();
-  if (!sanitizedText.length) return;
-  const words = sanitizedText.split(" ");
-  if (words.length) {
-    const [type, ...args] = words;
-    return { type, args };
-  }
-  return { type: "none", args: [sanitizedText] };
 };
 
 const handleMessage = async (messageEvent: SlackMessageEvent) => {
