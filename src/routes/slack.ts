@@ -13,8 +13,10 @@ router.post("/", async (request: Request, response: Response) => {
     if (
       !(await isValidSlackRequest(request)) &&
       process.env.MODE !== "development"
-    )
+    ) {
+      console.warn("Request failed signature check");
       return response.sendStatus(400);
+    }
     /*
     if (request.body.event?.type === "message") {
       await Slack.chat.postMessage({
@@ -25,6 +27,7 @@ router.post("/", async (request: Request, response: Response) => {
       return response.send("OK");
     }
     */
+    console.log("Unknown event type", request.body.event?.type);
     return response.sendStatus(501);
   }
   console.log("Unknown request type", request.body);
