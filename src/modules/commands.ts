@@ -1,10 +1,11 @@
 import type { WebClient } from "@slack/web-api";
 
+export const COMMAND_PREFIX = "!";
+
 type Command = {
   type: string;
   args: string[];
 };
-
 type CommandProcessor = {
   fn: (
     client: WebClient,
@@ -15,35 +16,34 @@ type CommandProcessor = {
 };
 type CommandProcessors = Record<string, CommandProcessor>;
 
+// Modules can add commands into this Object using `addCommand`
+// Commands are globally enabled!
 export const Commands: CommandProcessors = {
-  hello: {
-    fn: async (client, command, channel, user) => {
-      const response = await client.users.info({ user });
-      const { id, name, real_name, team_id, deleted } = response?.user;
-      await client.chat.postMessage({
-        channel,
-        text: `Hello, ${name}!`,
-        attachments: null,
-      });
-    },
-  },
-  none: {
+  ["single word"]: {
     fn: async (client, command, channel, user) => {
       console.log("(no command)", command.args);
     },
   },
-} as const;
+};
 
-export const addCommand = (commandName: string, command: Command) => {};
+export const addCommand = (
+  commandName: string,
+  processor: CommandProcessor,
+  commands = Commands,
+) => {
+  commands[commandName] = processor;
+};
 
 export const processCommand = async (
   client: WebClient,
   command: Command,
   channel,
   user,
+  commands = Commands,
 ): Promise<void> => {
-  const foundCommand = Commands[command.type];
+  const foundCommand = commands[command.type];
   if (!foundCommand) {
+    // TODO: Use proper error throwing
     console.warn("Unknown command type", command.type);
     return;
   }
@@ -52,13 +52,24 @@ export const processCommand = async (
 
 export const parseCommand = (text: string): Command | null => {
   const sanitizedText = text.trim();
-  if (!sanitizedText.length) return null;
 
+  // Don't act on empty text
+  if (!sanitizedText.length) return null;
   const words = sanitizedText.split(" ");
-  if (words.length > 1) {
-    // First word is the invoked command
-    const [type, ...args] = words;
+
+  // Check if it's a prefixed command
+  const [firstChar] = sanitizedText;
+  if (firstChar === COMMAND_PREFIX) {
+    const [trigger, ...args] = words;
+    const type = trigger.slice(1);
     return { type, args };
   }
-  return { type: "none", args: [sanitizedText] };
+
+  // Check if it's a single word message
+  if (words.length === 1) {
+    return { type: "single word", args: [sanitizedText] };
+  }
+
+  // Ignore everything else
+  return null;
 };
