@@ -15,6 +15,7 @@ router.post("/", async (request: Request, response: Response) => {
       process.env.MODE !== "development"
     )
       return response.sendStatus(400);
+    /*
     if (request.body.event?.type === "message") {
       await Slack.chat.postMessage({
         channel: request.body.event.channel,
@@ -23,6 +24,7 @@ router.post("/", async (request: Request, response: Response) => {
       });
       return response.send("OK");
     }
+    */
     return response.sendStatus(501);
   }
   console.log("Unknown request type", request.body);
