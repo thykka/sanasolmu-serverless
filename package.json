@@ -9,7 +9,8 @@
   "scripts": {
     "start": "tsc && node -r dotenv/config dist/index.js",
     "watch": "tsc --watch & nodemon -r dotenv/config -w dist dist/index.js",
-    "test": "jest --watch",
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
     "lint": "npx eslint .",
     "lint:fix": "npx eslint . --fix"
   },

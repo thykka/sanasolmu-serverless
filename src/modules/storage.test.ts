@@ -1,17 +1,21 @@
-import { initialize, loadItem, saveItem } from "./storage.js";
+import { create } from "./storage.js";
 
 let testStorage;
 beforeAll(async () => {
-  testStorage = await initialize("tests");
+  testStorage = await create("tests");
 });
 
 describe("Read & Write", () => {
+  test("It throws without store ID argument", async () => {
+    await expect(async () => {
+      await create(undefined);
+    }).rejects.toThrow();
+  });
   test("It stores an item", async () => {
-    const result = await saveItem(testStorage, "foo", "bar");
-    expect(result).toEqual(true);
+    await testStorage.saveWords(["foo", "bar"]);
   });
   test("It reads an item", async () => {
-    const result = await loadItem(testStorage, "foo");
-    expect(result).toEqual("bar");
+    const result = await testStorage.loadWords();
+    expect(result).toEqual(["foo", "bar"]);
   });
 });
