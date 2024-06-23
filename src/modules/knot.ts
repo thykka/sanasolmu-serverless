@@ -157,31 +157,32 @@ export const guessWord: CommandProcessor["fn"] = async (
   if (guess.toLowerCase() === state.answer.toLowerCase()) {
     const newScore = addScore(state, user);
     const prefixedScore = getPrefixedScore(newScore);
-    client.reactions.add({
-      channel,
-      timestamp,
-      name: "trophy",
-    });
+    let newState;
     try {
-      const newState = await createGame(
-        channel,
-        state.language,
-        state.answer.length,
-      );
-      client.chat.postMessage({
-        channel,
-        attachments: null,
-        text: `<@${user}> guessed their ${prefixedScore} knot ${formatWord(state.answer)}
-
-  New knot: ${formatWord(newState.hint)}`,
-      });
+      newState = await createGame(channel, state.language, state.answer.length);
     } catch (e) {
       if (state.usedWords.length) {
         await resetUsedWords(client, channel);
         await guessWord(client, command, channel, user, timestamp);
+        return;
       } else {
         throw new Error(e);
       }
+    }
+
+    if (newState) {
+      client.reactions.add({
+        channel,
+        timestamp,
+        name: "trophy",
+      });
+      client.chat.postMessage({
+        channel,
+        attachments: null,
+        text: `<@${user}> guessed their ${prefixedScore} knot ${formatWord(state.answer)}
+  
+  New knot: ${formatWord(newState.hint)}`,
+      });
     }
   } else {
     client.reactions.add({
