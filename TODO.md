@@ -23,7 +23,7 @@
   - [x] React to messages
   - [x] Chat commands with arguments
   - [x] Observe single word messages
-  - [ ] Store [OAUTH2 tokens](https://api.slack.com/authentication/oauth-v2) for each workspace -> [@slack/web-api](https://slack.dev/node-slack-sdk/web-api)
+  - [x] Store [OAUTH2 tokens](https://api.slack.com/authentication/oauth-v2) for each workspace -> [@slack/web-api](https://slack.dev/node-slack-sdk/web-api)
 
 ## Game
 
@@ -40,6 +40,15 @@
 ## Game rules
 
 - [ ] Rethink economy - buying hints should have a meaningful cost?
+
+## Distribution
+
+- [x] Privacy policy URL
+  - [ ] Legalese
+- [x] Support URL
+  - [ ] Up to date?
+- [x] Support email
+- [ ] ???
 
 https://app.slack.com/client/T06V1HD2ZS4/C06U9S72Y13
 https://slack.dev/node-slack-sdk/web-api#new-way

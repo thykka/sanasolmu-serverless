@@ -47,20 +47,7 @@ app.use((request: Request, response: Response, next) => {
 
 app.use("/slack", slack);
 app.use("/admin", admin);
-/*
-app.use("/privacy", (request: Request, response: Response) => {
-  response.sendFile(path.resolve("./static/privacy.html"));
-});
-app.use("/support", (request: Request, response: Response) => {
-  response.sendFile(path.resolve("./static/support.html"));
-});
-app.use("/styles", (request: Request, response: Response) => {
-  response.sendFile(path.resolve("./static/styles.css"));
-});
-app.use("/", (request: Request, response: Response) => {
-  response.sendFile(path.resolve("./static/index.html"));
-});
-*/
+
 app.use(express.static("static"));
 
 app.all("*", (req: Request, res: Response) => res.sendStatus(404));
