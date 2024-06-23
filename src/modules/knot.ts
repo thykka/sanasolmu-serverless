@@ -141,9 +141,15 @@ const getPrefixedScore = (score: number): string => {
   return score + prefix;
 };
 
-const addScore = (state: GameState, user: string): number => {
-  if (!state.scores[user]) state.scores[user] = 0;
+const addScore = async (
+  state: GameState,
+  channel: string,
+  user: string,
+): Promise<number> => {
+  if (typeof state.scores[user] !== "number") state.scores[user] = 0;
   state.scores[user]++;
+  const storage = await getGameStorage(channel);
+  storage.save(channel, state);
   return state.scores[user];
 };
 
@@ -161,7 +167,7 @@ export const guessWord: CommandProcessor["fn"] = async (
   const sortedAnswer = [...state.answer.toLowerCase()].sort().join("");
   if (sortedGuess !== sortedAnswer) return;
   if (guess.toLowerCase() === state.answer.toLowerCase()) {
-    const newScore = addScore(state, user);
+    const newScore = await addScore(state, channel, user);
     const prefixedScore = getPrefixedScore(newScore);
     let newState;
     try {
