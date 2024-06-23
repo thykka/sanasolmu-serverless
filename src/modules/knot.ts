@@ -79,9 +79,11 @@ export const guessWord: CommandProcessor["fn"] = async (
 ) => {
   const state = await getState(channel);
   const guess = command.type;
+  console.log(guess, state.answer);
   if (guess.length !== state.answer.length) return;
   const sortedGuess = [...guess].sort().join("");
   const sortedAnswer = [...state.answer].sort().join("");
+  console.log(sortedGuess, sortedAnswer);
   if (sortedGuess !== sortedAnswer) return;
   if (guess === state.answer) {
     client.reactions.add({
