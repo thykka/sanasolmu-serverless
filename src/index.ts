@@ -12,8 +12,8 @@ const app: Application = express();
 const httpPort = parseInt(process.env.API_HTTP_PORT) || 80;
 const httpsPort = parseInt(process.env.API_HTTPS_PORT) || 443;
 
-const credentials = { key: "", cert: "", ca: "" };
 try {
+  const credentials = { key: "", cert: "", ca: "" };
   credentials.key = readFileSync(process.env.HTTPS_KEY_FILE, "utf-8");
   credentials.cert = readFileSync(process.env.HTTPS_CERT_FILE, "utf-8");
   credentials.ca = readFileSync(process.env.HTTPS_CHAIN_FILE, "utf-8");
@@ -22,7 +22,7 @@ try {
     console.log(`https ready https://sanasolmu.dy.fi:${httpsPort}/`);
   });
 } catch (e) {
-  console.error("Error loading HTTPS credentials", e);
+  console.error("Could not start HTTPS server", e);
 }
 
 const httpServer = http.createServer(app);

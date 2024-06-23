@@ -45,7 +45,7 @@ type SlackChannelJoinEvent = SlackEventCommon & {
 };
 
 const InstallationStorageKey = "slack-installs";
-const Slack = new WebClient(process.env.SLACK_BOT_TOKEN);
+const Slack = new WebClient();
 const router = Router();
 
 const SlackScopes = [
@@ -55,20 +55,6 @@ const SlackScopes = [
   "users:read",
 ] as const;
 
-const getInstallationId = (
-  installation: Installation | InstallationQuery<boolean>,
-) => {
-  if (installation.isEnterpriseInstall) {
-    return (
-      (installation as Installation)?.enterprise?.id ??
-      (installation as InstallationQuery<true>)?.enterpriseId
-    );
-  }
-  return (
-    (installation as Installation)?.team?.id ??
-    (installation as InstallationQuery<false>).teamId
-  );
-};
 const installer = new InstallProvider({
   clientId: process.env.SLACK_CLIENT_ID,
   clientSecret: process.env.SLACK_CLIENT_SECRET,
@@ -101,6 +87,18 @@ const installer = new InstallProvider({
     },
   },
 });
+
+/*
+const installUrl = await installer.generateInstallUrl({
+  scopes: [...SlackScopes],
+  redirectUri: `https://${process.env.API_HOSTNAME}:${process.env.API_HTTPS_PORT}/slack/oauth_redirect`,
+});
+*/
+
+console.log(
+  `>> https://${process.env.API_HOSTNAME}:${process.env.API_HTTPS_PORT}/slack/install`,
+);
+
 router.get("/install", async (request, response) => {
   await installer.handleInstallPath(
     request,
@@ -111,41 +109,76 @@ router.get("/install", async (request, response) => {
     },
   );
 });
-const installUrl = await installer.generateInstallUrl({
-  scopes: [...SlackScopes],
-  redirectUri: `https://${process.env.API_HOSTNAME}:${process.env.API_HTTPS_PORT}/slack/oauth_redirect`,
-});
+
 router.get("/oauth_redirect", (request: Request, response: Response) => {
-  const headers = { ["Content-Type"]: "text/html; charset=utf-8" };
-  installer.handleCallback(
-    request,
-    response,
-    /*
-    {
-      success: (installation, installOptions, req, res) => {
-        console.log({ installation, installOptions });
-        res.writeHead(200, headers);
-        res.end(`<html><body><h1>Success</h1></body></html>`);
-      },
-      failure: (error, installOptions, req, res) => {
-        console.log({ error, installOptions });
-        res.writeHead(500, headers);
-        res.end(`<html><body><h1>Installation failed</h1></body></html>`);
-      },  
-    }
-  */
-  );
+  installer.handleCallback(request, response);
 });
 
-console.log(`Slack install URL: ${installUrl}`);
+router.post("/", async (request: Request, response: Response) => {
+  const bodyType = request.body?.type;
+  if (bodyType === "url_verification") {
+    const { challenge } = request.body ?? { challenge: ":)" };
+    console.log("Slack URL verification", challenge);
+    return response.send(challenge);
+  } else if (bodyType === "event_callback") {
+    if (!(await isValidSlackRequest(request, response.locals.rawBody))) {
+      console.warn("Request failed signature check");
+      return response.sendStatus(400);
+    }
+    const { event } = request.body;
+    console.log("body", request.body);
+    const installation = await installer.installationStore.fetchInstallation({
+      isEnterpriseInstall: false,
+      enterpriseId: "",
+      teamId: "T06V1HD2ZS4",
+    });
+    console.log("installation", installation);
+    const client = new WebClient(installation.bot.token);
+    // TODO: Should we keep a list of client_msg_id + rawTimestamp, to avoid reacting to dupes?
+    // TODO: Should we ignore out-of-sequence messages?
+    if (!event) return response.sendStatus(400);
+    // TODO: Authorize Slack client, pass on to handlers
+    if (event.type === "message") {
+      if (event.subtype === "channel_join") {
+        handleAddChannel(client, event as SlackChannelJoinEvent);
+      } else if (typeof event.subtype === "undefined") {
+        handleMessage(client, event as SlackMessageEvent);
+      } else {
+        // Unknown/irrelevant message type
+      }
+      return response.send("OK");
+    }
+    console.warn("Unknown event type", event);
+    return response.send("OK");
+  }
+  console.log("Unknown request type", request.body);
+  response.sendStatus(400);
+});
+
+const getInstallationId = (
+  installation: Installation | InstallationQuery<boolean>,
+) => {
+  if (installation.isEnterpriseInstall) {
+    return (
+      (installation as Installation)?.enterprise?.id ??
+      (installation as InstallationQuery<true>)?.enterpriseId
+    );
+  }
+  return (
+    (installation as Installation)?.team?.id ??
+    (installation as InstallationQuery<false>).teamId
+  );
+};
 
 const handleAddChannel = async (
+  client: WebClient,
   joinEvent: SlackChannelJoinEvent,
 ): Promise<void> => {
   console.log("Join", joinEvent);
 };
 
 const handleMessage = async (
+  client: WebClient,
   messageEvent: SlackMessageEvent,
 ): Promise<void> => {
   const {
@@ -169,40 +202,9 @@ const handleMessage = async (
 
   const command = parseCommand(text);
   if (!command) return;
-  await processCommand(Slack, command, channel, user, timestamp);
-};
 
-router.post("/", async (request: Request, response: Response) => {
-  const bodyType = request.body?.type;
-  if (bodyType === "url_verification") {
-    const { challenge } = request.body ?? { challenge: ":)" };
-    console.log("Slack URL verification", challenge);
-    return response.send(challenge);
-  } else if (bodyType === "event_callback") {
-    if (!(await isValidSlackRequest(request, response.locals.rawBody))) {
-      console.warn("Request failed signature check");
-      return response.sendStatus(400);
-    }
-    // TODO: Should we keep a list of client_msg_id + rawTimestamp, to avoid reacting to dupes?
-    // TODO: Should we ignore out-of-sequence messages?
-    const { event } = request.body;
-    if (!event) return response.sendStatus(400);
-    if (event.type === "message") {
-      if (event.subtype === "channel_join") {
-        handleAddChannel(event as SlackChannelJoinEvent);
-      } else if (typeof event.subtype === "undefined") {
-        handleMessage(event as SlackMessageEvent);
-      } else {
-        // Unknown/irrelevant message type
-      }
-      return response.send("OK");
-    }
-    console.warn("Unknown event type", event);
-    return response.send("OK");
-  }
-  console.log("Unknown request type", request.body);
-  response.sendStatus(400);
-});
+  await processCommand(client, command, channel, user, timestamp);
+};
 
 const isValidSlackRequest = async (req: Request, rawBody): Promise<boolean> => {
   const rawTimestamp = req.headers["x-slack-request-timestamp"];
