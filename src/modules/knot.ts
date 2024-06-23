@@ -26,19 +26,25 @@ const getGameStorage = (channel: string) => {
   return getStorage<GameState>(`${StorageId}-${channel}`);
 };
 
+const initState = (): GameState => ({
+  channel: "",
+  language: "fi",
+  answer: "",
+  hint: "",
+  usedWords: [],
+  scores: {},
+});
+
 const createGame = async (
   channel: string,
-  lang?: Language,
-  length?: number,
+  language: Language = DefaultLanguage,
+  length: number = DefaultWordLength,
 ): Promise<GameState> => {
   const storage = await getGameStorage(channel);
-  const previousState = await storage.load(channel);
-  const wordLength =
-    length ?? previousState?.answer?.length ?? DefaultWordLength;
-  const language = lang ?? previousState?.language ?? DefaultLanguage;
+  const previousState: GameState = (await storage.load(channel)) ?? initState();
   const usedWords = previousState.usedWords ?? [];
   usedWords.push(previousState.answer);
-  const answer = await getWord(wordLength, language, usedWords);
+  const answer = await getWord(length, language, usedWords);
   const state = {
     channel,
     language,
