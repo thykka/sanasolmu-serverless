@@ -7,6 +7,11 @@ const DefaultWordLength = 6;
 const DefaultLanguage: Language = "fi";
 const StorageId = "knot";
 
+const Flags: Record<Language, string> = {
+  en: "flag-gb",
+  fi: "flag-fi",
+} as const;
+
 type GameState = {
   channel: string;
   language: Language;
@@ -69,7 +74,7 @@ export const startGame: CommandProcessor["fn"] = async (
   try {
     const state = await createGame(channel, language, wordLength);
     client.chat.postMessage({
-      text: `<@${user}> started a new game: ${state.hint.map((letter) => `\`${letter}\``).join(" ")} :flag-${state.language}:`,
+      text: `<@${user}> started a new game: ${formatWord(state.hint)} :${Flags[state.language]}:`,
       channel,
       attachments: null,
     });
@@ -117,7 +122,8 @@ export const guessWord: CommandProcessor["fn"] = async (
       channel,
       attachments: null,
       text: `<@${user}> guessed the knot ${formatWord(state.answer)}!
-New knot: ${formatWord(newState.hint)}`,
+
+New knot: ${formatWord(newState.hint)} :${Flags[newState.language]}:}`,
     });
   } else {
     client.reactions.add({
