@@ -3,9 +3,9 @@ import { WebClient } from "@slack/web-api";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { parseCommand, processCommand } from "../modules/commands.js";
+import { getStorage } from "../modules/storage.js";
 
-const Slack = new WebClient(process.env.SLACK_BOT_TOKEN);
-const router = Router();
+import { InstallProvider, Installation, InstallationQuery } from "@slack/oauth";
 
 type SlackUserElement = {
   type: "user";
@@ -43,6 +43,77 @@ type SlackMessageEvent = SlackEventCommon & {
 type SlackChannelJoinEvent = SlackEventCommon & {
   subtype: "channel_join";
 };
+
+const InstallationStorageKey = "slack-installs";
+const Slack = new WebClient(process.env.SLACK_BOT_TOKEN);
+const router = Router();
+
+const getInstallationId = (
+  installation: Installation | InstallationQuery<boolean>,
+) => {
+  if (installation.isEnterpriseInstall) {
+    return (
+      (installation as Installation)?.enterprise?.id ??
+      (installation as InstallationQuery<true>)?.enterpriseId
+    );
+  }
+  return (
+    (installation as Installation)?.team?.id ??
+    (installation as InstallationQuery<false>).teamId
+  );
+};
+const installer = new InstallProvider({
+  clientId: process.env.SLACK_CLIENT_ID,
+  clientSecret: process.env.SLACK_CLIENT_SECRET,
+  stateSecret: process.env.SLACK_STATE_SECRET,
+  installationStore: {
+    storeInstallation: async (installation) => {
+      const id = getInstallationId(installation);
+      const storage = await getStorage<Installation | undefined>(
+        InstallationStorageKey,
+      );
+      await storage.save(id, installation);
+      return;
+    },
+    fetchInstallation: async (installQuery) => {
+      const id = getInstallationId(installQuery);
+      const storage = await getStorage<Installation | undefined>(
+        InstallationStorageKey,
+      );
+      const installation = await storage.load(id);
+      return installation;
+    },
+    deleteInstallation: async (installQuery) => {
+      const id = getInstallationId(installQuery);
+      const storage = await getStorage<Installation | undefined>(
+        InstallationStorageKey,
+      );
+      await storage.client.removeItem(id);
+      return;
+    },
+  },
+});
+const installUrl = await installer.generateInstallUrl({
+  scopes: ["channels:history", "chat:write", "reactions:write", "users:read"],
+  redirectUri: "https://159.69.14.199:4000/slack/oauth_redirect",
+});
+router.get("/oauth_redirect", (request: Request, response: Response) => {
+  const headers = { ["Content-Type"]: "text/html; charset=utf-8" };
+  installer.handleCallback(request, response, {
+    success: (installation, installOptions, req, res) => {
+      console.log({ installOptions });
+      res.writeHead(200, headers);
+      res.end(`<html><body><h1>Success</h1></body></html>`);
+    },
+    failure: (error, installOptions, req, res) => {
+      console.log({ error, installOptions });
+      res.writeHead(500, headers);
+      res.end(`<html><body><h1>Installation failed</h1></body></html>`);
+    },
+  });
+});
+
+console.log(`Slack install URL: ${installUrl}`);
 
 const handleAddChannel = async (
   joinEvent: SlackChannelJoinEvent,
