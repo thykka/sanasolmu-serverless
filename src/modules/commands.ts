@@ -32,6 +32,7 @@ export const addCommand = (
   processor: CommandProcessor,
   commands = Commands,
 ) => {
+  console.log(`Adding processor for "${commandName}"`);
   commands[commandName] = processor;
 };
 
@@ -46,7 +47,7 @@ export const processCommand = async (
   const foundCommand = commands[command.type];
   if (!foundCommand) {
     // TODO: Use proper error throwing
-    console.warn("Unknown command type", command.type);
+    console.warn("Unknown command type", command.type, Object.keys(commands));
     client.reactions.add({
       channel,
       timestamp,
