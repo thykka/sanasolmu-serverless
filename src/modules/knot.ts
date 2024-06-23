@@ -107,7 +107,7 @@ export const guessWord: CommandProcessor["fn"] = async (
   const sortedAnswer = [...state.answer].sort().join("");
   console.log(sortedGuess, sortedAnswer);
   if (sortedGuess !== sortedAnswer) return;
-  if (guess === state.answer) {
+  if (guess.toLowerCase() === state.answer.toLowerCase()) {
     client.reactions.add({
       channel,
       timestamp,
@@ -121,9 +121,9 @@ export const guessWord: CommandProcessor["fn"] = async (
     client.chat.postMessage({
       channel,
       attachments: null,
-      text: `<@${user}> guessed the knot ${formatWord(state.answer)}!
+      text: `<@${user}> guessed the knot ${formatWord(state.answer)}
 
-New knot: ${formatWord(newState.hint)} :${Flags[newState.language]}:}`,
+New knot: ${formatWord(newState.hint)} :${Flags[newState.language]}:`,
     });
   } else {
     client.reactions.add({
