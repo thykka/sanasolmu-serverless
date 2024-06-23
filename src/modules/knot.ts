@@ -151,11 +151,17 @@ export const guessWord: CommandProcessor["fn"] = async (
   New knot: ${formatWord(newState.hint)}`,
       });
     } catch (e) {
-      client.chat.postMessage({
-        channel,
-        attachments: null,
-        text: `Couldn't create new game: ${e.message}`,
-      });
+      if (state.usedWords.length) {
+        state.usedWords = [];
+        client.chat.postMessage({
+          channel,
+          attachments: null,
+          text: `All words have been used :open_mouth: Clearing used words...`,
+        });
+        await guessWord(client, command, channel, user, timestamp);
+      } else {
+        throw new Error(e);
+      }
     }
   } else {
     client.reactions.add({
