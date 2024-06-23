@@ -1,4 +1,5 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
+import storage from "node-persist";
 import {
   parseLanguage,
   getAllWords,
@@ -12,7 +13,7 @@ router.use((request, response, next) => {
   if (request.query.secret !== process.env.ADMIN_SECRET)
     return response.sendStatus(403);
   const [language] = [request.query.language].flat();
-  response.locals.language = parseLanguage(language.toString());
+  response.locals.language = parseLanguage(language?.toString() ?? "fi");
   next();
 });
 
@@ -31,6 +32,12 @@ router.post("/sample", async (request, response) => {
   const length = parseInt(queryLength?.toString() ?? "5", 10);
   const result = await getWord(length, response.locals.language);
   return response.json({ success: !!result, result });
+});
+
+router.post("/stats", async (request, response) => {
+  const { channel } = request.query;
+  const games = storage.getItem(`knot-${channel}`);
+  return response.json({ success: !!games, result: games });
 });
 
 export default router;
