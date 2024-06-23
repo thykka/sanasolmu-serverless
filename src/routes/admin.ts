@@ -36,7 +36,14 @@ router.post("/sample", async (request, response) => {
 
 router.post("/stats", async (request, response) => {
   const { channel } = request.query;
-  const games = storage.getItem(`knot-${channel}`);
+  const client = storage.create({
+    dir: `storage/knot-${channel}`,
+    writeQueue: false,
+    ttl: false,
+    expiredInterval: 0,
+  });
+  await client.init();
+  const games = await client.values();
   return response.json({ success: !!games, result: games });
 });
 
