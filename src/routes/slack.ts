@@ -65,7 +65,8 @@ const getInstallationId = (
 const installer = new InstallProvider({
   clientId: process.env.SLACK_CLIENT_ID,
   clientSecret: process.env.SLACK_CLIENT_SECRET,
-  // stateSecret: process.env.SLACK_STATE_SECRET,
+  stateSecret: process.env.SLACK_STATE_SECRET,
+  stateVerification: false,
   installationStore: {
     storeInstallation: async (installation) => {
       const id = getInstallationId(installation);
