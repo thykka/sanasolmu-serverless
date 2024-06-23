@@ -65,7 +65,7 @@ const getInstallationId = (
 const installer = new InstallProvider({
   clientId: process.env.SLACK_CLIENT_ID,
   clientSecret: process.env.SLACK_CLIENT_SECRET,
-  stateSecret: process.env.SLACK_STATE_SECRET,
+  // stateSecret: process.env.SLACK_STATE_SECRET,
   installationStore: {
     storeInstallation: async (installation) => {
       const id = getInstallationId(installation);
@@ -101,7 +101,7 @@ router.get("/oauth_redirect", (request: Request, response: Response) => {
   const headers = { ["Content-Type"]: "text/html; charset=utf-8" };
   installer.handleCallback(request, response, {
     success: (installation, installOptions, req, res) => {
-      console.log({ installOptions });
+      console.log({ installation, installOptions });
       res.writeHead(200, headers);
       res.end(`<html><body><h1>Success</h1></body></html>`);
     },
