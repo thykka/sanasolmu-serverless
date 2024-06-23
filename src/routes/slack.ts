@@ -95,7 +95,7 @@ const installer = new InstallProvider({
 });
 const installUrl = await installer.generateInstallUrl({
   scopes: ["channels:history", "chat:write", "reactions:write", "users:read"],
-  redirectUri: "https://159.69.14.199:4000/slack/oauth_redirect",
+  redirectUri: `https://${process.env.API_HOSTNAME}:${process.env.API_HTTPS_PORT}/slack/oauth_redirect`,
 });
 router.get("/oauth_redirect", (request: Request, response: Response) => {
   const headers = { ["Content-Type"]: "text/html; charset=utf-8" };
