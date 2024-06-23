@@ -48,6 +48,13 @@ const InstallationStorageKey = "slack-installs";
 const Slack = new WebClient(process.env.SLACK_BOT_TOKEN);
 const router = Router();
 
+const SlackScopes = [
+  "channels:history",
+  "chat:write",
+  "reactions:write",
+  "users:read",
+] as const;
+
 const getInstallationId = (
   installation: Installation | InstallationQuery<boolean>,
 ) => {
@@ -66,7 +73,7 @@ const installer = new InstallProvider({
   clientId: process.env.SLACK_CLIENT_ID,
   clientSecret: process.env.SLACK_CLIENT_SECRET,
   stateSecret: process.env.SLACK_STATE_SECRET,
-  stateVerification: false,
+  // stateVerification: false,
   installationStore: {
     storeInstallation: async (installation) => {
       const id = getInstallationId(installation);
@@ -94,24 +101,40 @@ const installer = new InstallProvider({
     },
   },
 });
+router.get("/install", async (request, response) => {
+  await installer.handleInstallPath(
+    request,
+    response,
+    {},
+    {
+      scopes: [...SlackScopes],
+    },
+  );
+});
 const installUrl = await installer.generateInstallUrl({
-  scopes: ["channels:history", "chat:write", "reactions:write", "users:read"],
+  scopes: [...SlackScopes],
   redirectUri: `https://${process.env.API_HOSTNAME}:${process.env.API_HTTPS_PORT}/slack/oauth_redirect`,
 });
 router.get("/oauth_redirect", (request: Request, response: Response) => {
   const headers = { ["Content-Type"]: "text/html; charset=utf-8" };
-  installer.handleCallback(request, response, {
-    success: (installation, installOptions, req, res) => {
-      console.log({ installation, installOptions });
-      res.writeHead(200, headers);
-      res.end(`<html><body><h1>Success</h1></body></html>`);
-    },
-    failure: (error, installOptions, req, res) => {
-      console.log({ error, installOptions });
-      res.writeHead(500, headers);
-      res.end(`<html><body><h1>Installation failed</h1></body></html>`);
-    },
-  });
+  installer.handleCallback(
+    request,
+    response,
+    /*
+    {
+      success: (installation, installOptions, req, res) => {
+        console.log({ installation, installOptions });
+        res.writeHead(200, headers);
+        res.end(`<html><body><h1>Success</h1></body></html>`);
+      },
+      failure: (error, installOptions, req, res) => {
+        console.log({ error, installOptions });
+        res.writeHead(500, headers);
+        res.end(`<html><body><h1>Installation failed</h1></body></html>`);
+      },  
+    }
+  */
+  );
 });
 
 console.log(`Slack install URL: ${installUrl}`);
