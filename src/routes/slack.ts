@@ -45,7 +45,6 @@ type SlackChannelJoinEvent = SlackEventCommon & {
 };
 
 const InstallationStorageKey = "slack-installs";
-const Slack = new WebClient();
 const router = Router();
 
 const SlackScopes = [
@@ -88,17 +87,6 @@ const installer = new InstallProvider({
   },
 });
 
-/*
-const installUrl = await installer.generateInstallUrl({
-  scopes: [...SlackScopes],
-  redirectUri: `https://${process.env.API_HOSTNAME}:${process.env.API_HTTPS_PORT}/slack/oauth_redirect`,
-});
-*/
-
-console.log(
-  `>> https://${process.env.API_HOSTNAME}:${process.env.API_HTTPS_PORT}/slack/install`,
-);
-
 router.get("/install", async (request, response) => {
   await installer.handleInstallPath(
     request,
@@ -125,17 +113,11 @@ router.post("/", async (request: Request, response: Response) => {
       console.warn("Request failed signature check");
       return response.sendStatus(400);
     }
-    const { event } = request.body;
-    console.log("body", request.body);
-    const installation = await installer.installationStore.fetchInstallation({
-      isEnterpriseInstall: false,
-      enterpriseId: "",
-      teamId: "T06V1HD2ZS4",
-    });
-    console.log("installation", installation);
-    const client = new WebClient(installation.bot.token);
+    const client = await getClient(request.body);
+    if (!client) throw new Error("Failed to initialize client", request.body);
     // TODO: Should we keep a list of client_msg_id + rawTimestamp, to avoid reacting to dupes?
     // TODO: Should we ignore out-of-sequence messages?
+    const { event } = request.body;
     if (!event) return response.sendStatus(400);
     // TODO: Authorize Slack client, pass on to handlers
     if (event.type === "message") {
@@ -154,6 +136,22 @@ router.post("/", async (request: Request, response: Response) => {
   console.log("Unknown request type", request.body);
   response.sendStatus(400);
 });
+
+const getClient = async (
+  requestBody: Request["body"],
+): Promise<WebClient | null> => {
+  const { team_id, context_enterprise_id } = requestBody;
+  const isEnterpriseInstall = !!context_enterprise_id;
+  const installationQuery = {
+    isEnterpriseInstall,
+    teamId: isEnterpriseInstall ? null : team_id,
+    enterpriseId: isEnterpriseInstall ? context_enterprise_id : null,
+  };
+  const installation =
+    await installer.installationStore.fetchInstallation(installationQuery);
+  const client = new WebClient(installation.bot.token);
+  return client;
+};
 
 const getInstallationId = (
   installation: Installation | InstallationQuery<boolean>,
@@ -237,5 +235,9 @@ const isValidSlackRequest = async (req: Request, rawBody): Promise<boolean> => {
   }
   return true;
 };
+
+console.log(
+  `>> https://${process.env.API_HOSTNAME}:${process.env.API_HTTPS_PORT}/slack/install`,
+);
 
 export default router;
