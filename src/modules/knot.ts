@@ -50,6 +50,15 @@ const createGame = async (
   return state;
 };
 
+const resetUsedWords = async (channel): Promise<void> => {
+  const storage = await getGameStorage(channel);
+  const state = await storage.load(channel);
+  await storage.save(channel, {
+    ...state,
+    usedWords: [],
+  });
+};
+
 const getState = async (channel: string): Promise<GameState> => {
   const storage = await getGameStorage(channel);
   const state = await storage.load(channel);
@@ -152,11 +161,11 @@ export const guessWord: CommandProcessor["fn"] = async (
       });
     } catch (e) {
       if (state.usedWords.length) {
-        state.usedWords = [];
+        await resetUsedWords(channel);
         client.chat.postMessage({
           channel,
           attachments: null,
-          text: `All words have been used :open_mouth: Clearing used words...`,
+          text: `All words have been used :open_mouth: Resetting used words...`,
         });
         await guessWord(client, command, channel, user, timestamp);
       } else {
