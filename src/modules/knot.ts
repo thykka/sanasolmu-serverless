@@ -80,16 +80,21 @@ export const guessWord: CommandProcessor["fn"] = async (
   const state = await getState(channel);
   const guess = command.type;
   if (guess === state.answer) {
+    client.reactions.add({
+      channel,
+      timestamp,
+      name: "trophy",
+    });
     client.chat.postMessage({
       channel,
       attachments: null,
-      text: `<${user}> guessed the word "${state.answer}"!`,
+      text: `<@${user}> guessed the word "${state.answer}"!`,
     });
   } else {
     client.reactions.add({
       channel,
       timestamp,
-      name: "",
+      name: "x",
     });
   }
 };
