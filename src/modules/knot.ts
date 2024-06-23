@@ -137,18 +137,26 @@ export const guessWord: CommandProcessor["fn"] = async (
       timestamp,
       name: "trophy",
     });
-    const newState = await createGame(
-      channel,
-      state.language,
-      state.answer.length,
-    );
-    client.chat.postMessage({
-      channel,
-      attachments: null,
-      text: `<@${user}> guessed their ${prefixedScore} knot ${formatWord(state.answer)}
+    try {
+      const newState = await createGame(
+        channel,
+        state.language,
+        state.answer.length,
+      );
+      client.chat.postMessage({
+        channel,
+        attachments: null,
+        text: `<@${user}> guessed their ${prefixedScore} knot ${formatWord(state.answer)}
 
-New knot: ${formatWord(newState.hint)}`,
-    });
+  New knot: ${formatWord(newState.hint)}`,
+      });
+    } catch (e) {
+      client.chat.postMessage({
+        channel,
+        attachments: null,
+        text: `Couldn't create new game: ${e.message}`,
+      });
+    }
   } else {
     client.reactions.add({
       channel,
