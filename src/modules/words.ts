@@ -41,14 +41,24 @@ export const getAllWords = async (language: Language): Promise<string[]> => {
 export const getWord = async (
   length: number,
   language: Language,
+  used?: string[],
 ): Promise<string> => {
   const storage = await getWordStorage(language);
   const words = await storage.load(WordStorageKey);
   const matchingWords = words.filter((word) => word.length === length);
   if (matchingWords.length === 0)
     throw new Error(`No words found (${language}/${length})`);
-  const randomIndex = Math.floor(Math.random() * matchingWords.length);
-  return matchingWords[randomIndex];
+  let word;
+  let attempts = 0;
+  while ((!word || used.includes(word)) && attempts < 1000) {
+    const randomIndex = Math.floor(Math.random() * matchingWords.length);
+    word = matchingWords[randomIndex];
+    attempts++;
+  }
+  if (attempts === 1000) {
+    throw new Error("Could not find new words after 1000 attempts");
+  }
+  return word;
 };
 
 const shuffle = (items: string[]): string[] => {
@@ -60,12 +70,12 @@ const shuffle = (items: string[]): string[] => {
   return shuffledItems.map((shuffled) => shuffled.item);
 };
 
-export const createHint = (word: string): string[] => {
-  let hint = [...word];
+export const createHint = (word: string): string => {
+  let hint: string[] = [...word];
   let attempts = 0;
   while (hint.join("") === word && attempts < 100) {
     hint = shuffle(hint);
     attempts++;
   }
-  return hint;
+  return hint.join("");
 };

@@ -16,7 +16,9 @@ type GameState = {
   channel: string;
   language: Language;
   answer: string;
-  hint: string[];
+  hint: string;
+  usedWords: string[];
+  scores: Record<string, number>;
 };
 
 const getGameStorage = (channel: string) => {
@@ -33,14 +35,16 @@ const createGame = async (
   const wordLength =
     length ?? previousState?.answer?.length ?? DefaultWordLength;
   const language = lang ?? previousState?.language ?? DefaultLanguage;
-  console.log(language, wordLength);
-  const answer = await getWord(wordLength, language);
-  const hint = createHint(answer);
+  const usedWords = previousState.usedWords ?? [];
+  usedWords.push(previousState.answer);
+  const answer = await getWord(wordLength, language, usedWords);
   const state = {
     channel,
     language,
     answer,
-    hint,
+    hint: createHint(answer),
+    usedWords,
+    scores: previousState.scores ?? {},
   };
   storage.save(channel, state);
   return state;
@@ -92,6 +96,18 @@ const formatWord = (word: string | string[]): string => {
   return letters.map((letter) => `\`${letter.toUpperCase()}\``).join(" ");
 };
 
+const IndexPrefixes = {
+  "1": "st",
+  "2": "nd",
+  "3": "rd",
+};
+
+const getPrefixedScore = (score: number): string => {
+  const [...digits] = [...Math.round(score).toString(10)];
+  const prefix = IndexPrefixes[digits[digits.length - 1]] ?? "th";
+  return score + prefix;
+};
+
 export const guessWord: CommandProcessor["fn"] = async (
   client,
   command,
@@ -106,6 +122,10 @@ export const guessWord: CommandProcessor["fn"] = async (
   const sortedAnswer = [...state.answer.toLowerCase()].sort().join("");
   if (sortedGuess !== sortedAnswer) return;
   if (guess.toLowerCase() === state.answer.toLowerCase()) {
+    if (!state.scores[user]) state.scores[user] = 0;
+    state.scores[user]++;
+    const newScore = state.scores[user];
+    const prefixedScore = getPrefixedScore(newScore);
     client.reactions.add({
       channel,
       timestamp,
@@ -119,9 +139,9 @@ export const guessWord: CommandProcessor["fn"] = async (
     client.chat.postMessage({
       channel,
       attachments: null,
-      text: `<@${user}> guessed the knot ${formatWord(state.answer)}
+      text: `<@${user}> guessed their ${prefixedScore} knot ${formatWord(state.answer)}
 
-New knot: ${formatWord(newState.hint)} :${Flags[newState.language]}:`,
+New knot: ${formatWord(newState.hint)}`,
     });
   } else {
     client.reactions.add({
