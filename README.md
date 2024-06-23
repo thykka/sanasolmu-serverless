@@ -6,6 +6,11 @@ A word guessing game for your Slack channel.
 
 App is not yet published. Await for further instructions.
 
+### HTTPS Certificate
+
+1. Create certificate with [certbot](https://certbot.eff.org/instructions)
+2. Add cert file paths to `.env`
+
 ## Development
 
 ### Installation

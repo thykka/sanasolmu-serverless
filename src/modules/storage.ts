@@ -1,48 +1,41 @@
-console.log(Date.now(), "storage.ts imports");
+import storage, { LocalStorage } from "node-persist";
 
-import storage, { FilterFunction, LocalStorage, Datum } from "node-persist";
+export type Storage<T> = {
+  id: string;
+  client: LocalStorage;
+  save: (key: string, data: T) => Promise<void>;
+  load: (key: string) => Promise<T>;
+};
 
-console.log(Date.now(), "storage.ts");
-
-export const initialize = async (storeId: string): Promise<LocalStorage> => {
-  if (!storeId) throw Error("Expected argument: storeId");
-  const myStorage = storage.create({
-    dir: `storage/${storeId}`,
+export const getStorage = async <T>(
+  storageId: string,
+  ttl: number | boolean = false,
+): Promise<Storage<T>> => {
+  if (!storageId) throw Error("No storageId provided");
+  const client = storage.create({
+    dir: `storage/${storageId}`,
     writeQueue: false,
+    ttl,
+    expiredInterval: 0,
   });
-  await myStorage.init();
-  return myStorage;
+  await client.init();
+  return {
+    id: storageId,
+    client,
+    save: (key, data: T) => saveData(client, key, data),
+    load: (key): Promise<T> => loadData(client, key),
+  };
 };
-
-export const saveItem = async (
-  store: LocalStorage,
+const saveData = async <T>(
+  client: LocalStorage,
   key: string,
-  item: unknown,
+  data: T,
 ): Promise<void> => {
-  await store.setItem(key, item);
-  return;
+  await client.setItem(key, data);
 };
-
-export const loadItem = async (
-  store: LocalStorage,
+const loadData = async <T>(
+  client: LocalStorage,
   key: string,
-): Promise<unknown> => {
-  const result = await store.getItem(key);
-  return result;
-};
-
-export const loadItems = async (
-  store: LocalStorage,
-  filter?: FilterFunction<Datum>,
-): Promise<unknown> => {
-  return await store.values(
-    filter ? (value, index, array) => filter(value, index, array) : undefined,
-  );
-};
-
-export default {
-  initialize,
-  saveItem,
-  loadItem,
-  loadItems,
+): Promise<T | undefined> => {
+  return await client.getItem(key);
 };

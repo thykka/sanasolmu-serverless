@@ -9,7 +9,8 @@
   "scripts": {
     "start": "tsc && node -r dotenv/config dist/index.js",
     "watch": "tsc --watch & nodemon -r dotenv/config -w dist dist/index.js",
-    "test": "jest --watch",
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
     "lint": "npx eslint .",
     "lint:fix": "npx eslint . --fix"
   },
@@ -29,6 +30,7 @@
     "typescript-eslint": "^7.4.0"
   },
   "dependencies": {
+    "@slack/oauth": "^3.0.0",
     "@slack/web-api": "^7.0.3",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",

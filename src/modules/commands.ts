@@ -6,12 +6,13 @@ type Command = {
   type: string;
   args: string[];
 };
-type CommandProcessor = {
+export type CommandProcessor = {
   fn: (
     client: WebClient,
     command: Command,
     channel: string,
     user: string,
+    timestamp: string,
   ) => Promise<void>;
 };
 type CommandProcessors = Record<string, CommandProcessor>;
@@ -31,6 +32,7 @@ export const addCommand = (
   processor: CommandProcessor,
   commands = Commands,
 ) => {
+  console.log(`Adding processor for "${commandName}"`);
   commands[commandName] = processor;
 };
 
@@ -45,7 +47,7 @@ export const processCommand = async (
   const foundCommand = commands[command.type];
   if (!foundCommand) {
     // TODO: Use proper error throwing
-    console.warn("Unknown command type", command.type);
+    console.warn("Unknown command type", command.type, Object.keys(commands));
     client.reactions.add({
       channel,
       timestamp,
@@ -53,7 +55,7 @@ export const processCommand = async (
     });
     return;
   }
-  foundCommand.fn(client, command, channel, user);
+  foundCommand.fn(client, command, channel, user, timestamp);
 };
 
 export const parseCommand = (text: string): Command | null => {
