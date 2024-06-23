@@ -3,6 +3,8 @@ import type { Language } from "./words.js";
 import { Languages, getWord, createHint } from "./words.js";
 import { getStorage } from "./storage.js";
 
+const DefaultWordLength = 6;
+const DefaultLanguage: Language = "fi";
 const StorageId = "knot";
 
 type GameState = {
@@ -23,8 +25,10 @@ const createGame = async (
 ): Promise<GameState> => {
   const storage = await getGameStorage(channel);
   const previousState = await storage.load(channel);
-  const wordLength = length ?? previousState?.answer?.length ?? 6;
-  const language = lang ?? previousState?.language ?? "fi";
+  const wordLength =
+    length ?? previousState?.answer?.length ?? DefaultWordLength;
+  const language = lang ?? previousState?.language ?? DefaultLanguage;
+  console.log(language, wordLength);
   const answer = await getWord(wordLength, language);
   const hint = createHint(answer);
   const state = {
