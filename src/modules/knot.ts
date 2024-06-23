@@ -54,6 +54,8 @@ const getState = async (channel: string): Promise<GameState> => {
   const storage = await getGameStorage(channel);
   const state = await storage.load(channel);
   if (!state) throw new Error(`Could not load game: ${channel}`);
+  if (!state.usedWords) state.usedWords = [];
+  if (!state.scores) state.scores = {};
   return state;
 };
 
@@ -108,6 +110,12 @@ const getPrefixedScore = (score: number): string => {
   return score + prefix;
 };
 
+const addScore = (state: GameState, user: string): number => {
+  if (!state.scores[user]) state.scores[user] = 0;
+  state.scores[user]++;
+  return state.scores[user];
+};
+
 export const guessWord: CommandProcessor["fn"] = async (
   client,
   command,
@@ -122,9 +130,7 @@ export const guessWord: CommandProcessor["fn"] = async (
   const sortedAnswer = [...state.answer.toLowerCase()].sort().join("");
   if (sortedGuess !== sortedAnswer) return;
   if (guess.toLowerCase() === state.answer.toLowerCase()) {
-    if (!state.scores[user]) state.scores[user] = 0;
-    state.scores[user]++;
-    const newScore = state.scores[user];
+    const newScore = addScore(state, user);
     const prefixedScore = getPrefixedScore(newScore);
     client.reactions.add({
       channel,
