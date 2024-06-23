@@ -6,12 +6,13 @@ type Command = {
   type: string;
   args: string[];
 };
-type CommandProcessor = {
+export type CommandProcessor = {
   fn: (
     client: WebClient,
     command: Command,
     channel: string,
     user: string,
+    timestamp: string,
   ) => Promise<void>;
 };
 type CommandProcessors = Record<string, CommandProcessor>;
@@ -53,7 +54,7 @@ export const processCommand = async (
     });
     return;
   }
-  foundCommand.fn(client, command, channel, user);
+  foundCommand.fn(client, command, channel, user, timestamp);
 };
 
 export const parseCommand = (text: string): Command | null => {

@@ -1,41 +1,41 @@
 import storage, { LocalStorage } from "node-persist";
 
-export type WordStorage = {
+export type Storage<T> = {
+  id: string;
   client: LocalStorage;
-  saveWords: (words: string[]) => Promise<void>;
-  loadWords: () => Promise<string[]>;
+  save: (key: string, data: T) => Promise<void>;
+  load: (key: string) => Promise<T>;
 };
 
-export const create = async (storeId: string): Promise<WordStorage> => {
-  if (!storeId) throw Error("Expected argument: storeId");
+export const getStorage = async <T>(
+  storageId: string,
+  ttl: number | boolean = false,
+): Promise<Storage<T>> => {
+  if (!storageId) throw Error("No storageId provided");
   const client = storage.create({
-    dir: `storage/${storeId}`,
+    dir: `storage/${storageId}`,
     writeQueue: false,
-    ttl: false,
+    ttl,
     expiredInterval: 0,
   });
   await client.init();
   return {
+    id: storageId,
     client,
-    saveWords: (words) => saveWords(client, words),
-    loadWords: () => loadWords(client),
+    save: (key, data: T) => saveData(client, key, data),
+    load: (key): Promise<T> => loadData(client, key),
   };
 };
-
-export const saveWords = async (
-  store: LocalStorage,
-  words: string[],
+const saveData = async <T>(
+  client: LocalStorage,
+  key: string,
+  data: T,
 ): Promise<void> => {
-  await store.setItem("words", words);
+  await client.setItem(key, data);
 };
-
-export const loadWords = async (store: LocalStorage): Promise<string[]> => {
-  const result = await store.getItem("words");
-  return Array.isArray(result) ? result : [];
-};
-
-export default {
-  create,
-  saveWords,
-  loadWords,
+const loadData = async <T>(
+  client: LocalStorage,
+  key: string,
+): Promise<T | undefined> => {
+  return await client.getItem(key);
 };

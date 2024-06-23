@@ -3,6 +3,7 @@ import getRawBody from "raw-body";
 import slack from "./routes/slack.js";
 import admin from "./routes/admin.js";
 import { addCommand } from "./modules/commands.js";
+import { guessWord, startGame } from "./modules/knot.js";
 
 const app: Application = express();
 const port: number = parseInt(process.env.API_PORT) || 3000;
@@ -17,6 +18,9 @@ addCommand("hello", {
     await client.chat.postMessage({ channel, text, attachments: null });
   },
 });
+
+addCommand("uusi", { fn: startGame });
+addCommand("single word", { fn: guessWord });
 
 app.use((req, res, next) => {
   getRawBody(req, (err, body) => {

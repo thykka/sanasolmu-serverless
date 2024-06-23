@@ -1,14 +1,14 @@
-import { create } from "./storage.js";
+import { createWords } from "./storage.js";
 
 let testStorage;
 beforeAll(async () => {
-  testStorage = await create("tests");
+  testStorage = await createWords("tests");
 });
 
 describe("Read & Write", () => {
   test("It throws without store ID argument", async () => {
     await expect(async () => {
-      await create(undefined);
+      await createWords(undefined);
     }).rejects.toThrow();
   });
   test("It stores an item", async () => {
