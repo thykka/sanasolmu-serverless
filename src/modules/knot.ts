@@ -1,3 +1,4 @@
+import type { WebClient } from "@slack/web-api";
 import type { CommandProcessor } from "./commands.js";
 import type { Language } from "./words.js";
 import { Languages, getWord, createHint } from "./words.js";
@@ -50,12 +51,21 @@ const createGame = async (
   return state;
 };
 
-const resetUsedWords = async (channel): Promise<void> => {
+const resetUsedWords = async (
+  client: WebClient,
+  channel: string,
+): Promise<void> => {
   const storage = await getGameStorage(channel);
   const state = await storage.load(channel);
   await storage.save(channel, {
     ...state,
     usedWords: [],
+  });
+
+  await client.chat.postMessage({
+    channel,
+    attachments: null,
+    text: `Used words have been reset :information_source:`,
   });
 };
 
@@ -96,7 +106,7 @@ export const startGame: CommandProcessor["fn"] = async (
   } catch (e) {
     // TODO: create proper error types
     if (e.message === "Could not find new words after 1000 attempts") {
-      await resetUsedWords(channel);
+      await resetUsedWords(client, channel);
       await startGame(client, command, channel, user, timestamp);
     } else {
       client.chat.postMessage({
@@ -167,12 +177,7 @@ export const guessWord: CommandProcessor["fn"] = async (
       });
     } catch (e) {
       if (state.usedWords.length) {
-        await resetUsedWords(channel);
-        client.chat.postMessage({
-          channel,
-          attachments: null,
-          text: `All words have been used :open_mouth: Resetting used words...`,
-        });
+        await resetUsedWords(client, channel);
         await guessWord(client, command, channel, user, timestamp);
       } else {
         throw new Error(e);
