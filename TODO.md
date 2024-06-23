@@ -3,17 +3,16 @@
 - Words
 
   - [x] read words from file
-  - [ ] assign word points
-  - [ ] assign word language
-
-- Players
-
-  - [ ] Slack ID, Score, Guess count, Fail count?
-  - [ ] Cache [Slack ID]: nickname
+  - [x] assign word language
 
 - [ ] Instances
-  - [ ] Word language
-  - [ ] List of used words
+  - [x] Channel ID
+  - [x] Current answer
+  - [x] Current hint
+  - [x] Word language
+  - [x] List of used words
+  - [ ] Scores by Player ID
+  - [ ] Used words by Player ID
 
 ## Integrations
 
@@ -30,8 +29,8 @@
 
 - Instances (per channel)
 - Port game functions
-  - [ ] NewRound
-  - [ ] Guess
+  - [x] NewRound
+  - [x] Guess
   - [ ] Hint
 - Implement new functions
   - [ ] Guess stats
