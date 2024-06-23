@@ -66,12 +66,25 @@ export const startGame: CommandProcessor["fn"] = async (
     ? (languageArg as Language)
     : null;
 
-  const state = await createGame(channel, language, wordLength);
-  client.chat.postMessage({
-    text: `<@${user}> started a new game: ${state.hint.map((letter) => `\`${letter}\``).join(" ")} :flag-${state.language}:`,
-    channel,
-    attachments: null,
-  });
+  try {
+    const state = await createGame(channel, language, wordLength);
+    client.chat.postMessage({
+      text: `<@${user}> started a new game: ${state.hint.map((letter) => `\`${letter}\``).join(" ")} :flag-${state.language}:`,
+      channel,
+      attachments: null,
+    });
+  } catch (e) {
+    client.chat.postMessage({
+      text: `Can't. ${e.message}`,
+      channel,
+      attachments: null,
+    });
+  }
+};
+
+const formatWord = (word: string | string[]): string => {
+  const letters = Array.isArray(word) ? word : [...word];
+  return letters.map((letter) => `\`${letter.toUpperCase()}\``).join(" ");
 };
 
 export const guessWord: CommandProcessor["fn"] = async (
@@ -95,10 +108,16 @@ export const guessWord: CommandProcessor["fn"] = async (
       timestamp,
       name: "trophy",
     });
+    const newState = await createGame(
+      channel,
+      state.language,
+      state.answer.length,
+    );
     client.chat.postMessage({
       channel,
       attachments: null,
-      text: `<@${user}> guessed the word "${state.answer}"!`,
+      text: `<@${user}> guessed the knot ${formatWord(state.answer)}!
+New knot: ${formatWord(newState.hint)}`,
     });
   } else {
     client.reactions.add({

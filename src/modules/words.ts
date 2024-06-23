@@ -45,6 +45,8 @@ export const getWord = async (
   const storage = await getWordStorage(language);
   const words = await storage.load(WordStorageKey);
   const matchingWords = words.filter((word) => word.length === length);
+  if (matchingWords.length === 0)
+    throw new Error(`No words found (${language}/${length})`);
   const randomIndex = Math.floor(Math.random() * matchingWords.length);
   return matchingWords[randomIndex];
 };
@@ -59,5 +61,11 @@ const shuffle = (items: string[]): string[] => {
 };
 
 export const createHint = (word: string): string[] => {
-  return shuffle([...word]);
+  let hint = [...word];
+  let attempts = 0;
+  while (hint.join("") === word && attempts < 100) {
+    hint = shuffle(hint);
+    attempts++;
+  }
+  return hint;
 };
