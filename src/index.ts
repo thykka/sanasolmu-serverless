@@ -7,6 +7,7 @@ import { guessWord, startGame } from "./modules/knot.js";
 import { readFileSync } from "fs";
 import http from "http";
 import https from "https";
+import path from "path";
 
 const app: Application = express();
 const httpPort = parseInt(process.env.API_HTTP_PORT) || 80;
@@ -30,15 +31,15 @@ httpServer.listen(httpPort, () => {
   console.log(`http ready http://sanasolmu.dy.fi:${httpPort}/`);
 });
 
-app.use((req, res, next) => {
-  getRawBody(req, (err, body) => {
+app.use((request: Request, response: Response, next) => {
+  getRawBody(request, (err, body) => {
     if (err) return next(err);
     const bodyString = body.toString();
-    res.locals.rawBody = bodyString;
+    response.locals.rawBody = bodyString;
     try {
-      req.body = JSON.parse(bodyString);
+      request.body = JSON.parse(bodyString);
     } catch (err) {
-      req.body = bodyString;
+      request.body = bodyString;
     }
     next();
   });
@@ -46,21 +47,24 @@ app.use((req, res, next) => {
 
 app.use("/slack", slack);
 app.use("/admin", admin);
+/*
+app.use("/privacy", (request: Request, response: Response) => {
+  response.sendFile(path.resolve("./static/privacy.html"));
+});
+app.use("/support", (request: Request, response: Response) => {
+  response.sendFile(path.resolve("./static/support.html"));
+});
+app.use("/styles", (request: Request, response: Response) => {
+  response.sendFile(path.resolve("./static/styles.css"));
+});
+app.use("/", (request: Request, response: Response) => {
+  response.sendFile(path.resolve("./static/index.html"));
+});
+*/
+app.use(express.static("static"));
 
 app.all("*", (req: Request, res: Response) => res.sendStatus(404));
 
-// app.listen(port, () => console.log(`Sanasolmu listening to port ${port}`));
-
-// Test command
-addCommand("hello", {
-  fn: async (client, command, channel, user) => {
-    // TODO: Cache users locally, so we can spare lots of requests
-    const response = await client.users.info({ user });
-    const { id, name, real_name, team_id, deleted } = response?.user;
-    const text = `Hello, ${command.args[0] === "doxx" ? real_name : name}!`;
-    await client.chat.postMessage({ channel, text, attachments: null });
-  },
-});
-
-addCommand("uusi", { fn: startGame });
+addCommand("knot", { fn: startGame });
+addCommand("solmu", { fn: startGame });
 addCommand("single word", { fn: guessWord });
