@@ -94,11 +94,17 @@ export const startGame: CommandProcessor["fn"] = async (
       attachments: null,
     });
   } catch (e) {
-    client.chat.postMessage({
-      text: `Can't. ${e.message}`,
-      channel,
-      attachments: null,
-    });
+    // TODO: create proper error types
+    if (e.message === "Could not find new words after 1000 attempts") {
+      await resetUsedWords(channel);
+      await startGame(client, command, channel, user, timestamp);
+    } else {
+      client.chat.postMessage({
+        text: `Can't. ${e.message}`,
+        channel,
+        attachments: null,
+      });
+    }
   }
 };
 
