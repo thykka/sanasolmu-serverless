@@ -64,7 +64,7 @@ export const startGame: CommandProcessor["fn"] = async (
 
   const state = await createGame(channel, language, wordLength);
   client.chat.postMessage({
-    text: `<${user}> started a new game: ${state.hint.map((letter) => `\`${letter}\``).join(" ")} :flag-${language}:`,
+    text: `<@${user}> started a new game: ${state.hint.map((letter) => `\`${letter}\``).join(" ")} :flag-${state.language}:`,
     channel,
     attachments: null,
   });

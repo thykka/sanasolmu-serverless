@@ -13,8 +13,10 @@ export const formatWordItem = (word: string, language: Language): string => {
   return word.toLowerCase();
 };
 
-const getWordStorage = (language: Language) => {
-  return getStorage<string[]>(`${StorageId}-${language}`);
+const getWordStorage = async (language: Language) => {
+  const storage = await getStorage<string[]>(`${StorageId}-${language}`);
+  if (!storage) throw new Error(`Words for ${language} not found`);
+  return storage;
 };
 
 export const populateWords = async (language: Language): Promise<number> => {
