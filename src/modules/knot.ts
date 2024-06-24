@@ -26,19 +26,25 @@ const getGameStorage = (channel: string) => {
   return getStorage<GameState>(`${StorageId}-${channel}`);
 };
 
+const initState = (): GameState => ({
+  channel: "",
+  language: "fi",
+  answer: "",
+  hint: "",
+  usedWords: [],
+  scores: {},
+});
+
 const createGame = async (
   channel: string,
-  lang?: Language,
-  length?: number,
+  language: Language = DefaultLanguage,
+  length: number = DefaultWordLength,
 ): Promise<GameState> => {
   const storage = await getGameStorage(channel);
-  const previousState = await storage.load(channel);
-  const wordLength =
-    length ?? previousState?.answer?.length ?? DefaultWordLength;
-  const language = lang ?? previousState?.language ?? DefaultLanguage;
+  const previousState: GameState = (await storage.load(channel)) ?? initState();
   const usedWords = previousState.usedWords ?? [];
   usedWords.push(previousState.answer);
-  const answer = await getWord(wordLength, language, usedWords);
+  const answer = await getWord(length, language, usedWords);
   const state = {
     channel,
     language,
@@ -91,15 +97,17 @@ export const startGame: CommandProcessor["fn"] = async (
     [languageArg, lengthArg] = [lengthArg, languageArg];
   }
   const parsedLength = parseInt(lengthArg, 10);
-  const wordLength = !Number.isNaN(parsedLength) ? parsedLength : null;
+  const wordLength = !Number.isNaN(parsedLength)
+    ? parsedLength
+    : DefaultWordLength;
   const language = Languages.includes(languageArg as Language)
     ? (languageArg as Language)
-    : null;
+    : DefaultLanguage;
 
   try {
     const state = await createGame(channel, language, wordLength);
     client.chat.postMessage({
-      text: `<@${user}> started a new game: ${formatWord(state.hint)} :${Flags[state.language]}:`,
+      text: `<@${user}> started a new game: ${formatWord(state.hint, state.language)}`,
       channel,
       attachments: null,
     });
@@ -118,9 +126,12 @@ export const startGame: CommandProcessor["fn"] = async (
   }
 };
 
-const formatWord = (word: string | string[]): string => {
+const formatWord = (word: string | string[], language?: Language): string => {
   const letters = Array.isArray(word) ? word : [...word];
-  return letters.map((letter) => `\`${letter.toUpperCase()}\``).join(" ");
+  return (
+    letters.map((letter) => `\`${letter.toUpperCase()}\``).join(" ") +
+    (language ? ` :${Flags[language]}:` : "")
+  );
 };
 
 const IndexPrefixes = {
@@ -135,9 +146,15 @@ const getPrefixedScore = (score: number): string => {
   return score + prefix;
 };
 
-const addScore = (state: GameState, user: string): number => {
-  if (!state.scores[user]) state.scores[user] = 0;
+const addScore = async (
+  state: GameState,
+  channel: string,
+  user: string,
+): Promise<number> => {
+  if (typeof state.scores[user] !== "number") state.scores[user] = 0;
   state.scores[user]++;
+  const storage = await getGameStorage(channel);
+  storage.save(channel, state);
   return state.scores[user];
 };
 
@@ -155,7 +172,7 @@ export const guessWord: CommandProcessor["fn"] = async (
   const sortedAnswer = [...state.answer.toLowerCase()].sort().join("");
   if (sortedGuess !== sortedAnswer) return;
   if (guess.toLowerCase() === state.answer.toLowerCase()) {
-    const newScore = addScore(state, user);
+    const newScore = await addScore(state, channel, user);
     const prefixedScore = getPrefixedScore(newScore);
     let newState;
     try {
@@ -179,9 +196,9 @@ export const guessWord: CommandProcessor["fn"] = async (
       client.chat.postMessage({
         channel,
         attachments: null,
-        text: `<@${user}> guessed their ${prefixedScore} knot ${formatWord(state.answer)}
-  
-  New knot: ${formatWord(newState.hint)}`,
+        text: `<@${user}> guessed their ${prefixedScore} knot ${formatWord(state.answer, state.language)}
+
+New knot: ${formatWord(newState.hint, newState.language)}`,
       });
     }
   } else {

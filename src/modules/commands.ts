@@ -32,7 +32,7 @@ export const addCommand = (
   processor: CommandProcessor,
   commands = Commands,
 ) => {
-  console.log(`Adding processor for "${commandName}"`);
+  console.log(`Adding command "${commandName}"`);
   commands[commandName] = processor;
 };
 
