@@ -99,6 +99,22 @@ const getState = async (channel: string): Promise<GameState> => {
   return state;
 };
 
+const getGaussianRandom = (mean: number, stdev: number): number => {
+  let [u1, u2] = [0, 0];
+  while (u1 === 0) u1 = Math.random();
+  while (u2 === 0) u2 = Math.random();
+  const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  return z0 * stdev + mean;
+};
+const mid = (x: number, y: number, z: number): number => {
+  const values = [x, y, z];
+  return values.sort((a, b) => a - b)[1];
+};
+
+const getRandomWordLength = (): number => {
+  return mid(3, 15, Math.ceil(getGaussianRandom(6, 1.67)));
+};
+
 export const startGame: CommandProcessor["fn"] = async (
   client,
   command,
@@ -213,7 +229,11 @@ export const guessWord: CommandProcessor["fn"] = async (
     const guessCount = getPrefixedNumber(newScore.words.length);
     let newState;
     try {
-      newState = await createGame(channel, state.language, state.answer.length);
+      newState = await createGame(
+        channel,
+        state.language,
+        getRandomWordLength(),
+      );
     } catch (e) {
       if (state.usedWords.length) {
         await resetUsedWords(client, channel);
