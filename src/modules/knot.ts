@@ -97,10 +97,12 @@ export const startGame: CommandProcessor["fn"] = async (
     [languageArg, lengthArg] = [lengthArg, languageArg];
   }
   const parsedLength = parseInt(lengthArg, 10);
-  const wordLength = !Number.isNaN(parsedLength) ? parsedLength : null;
+  const wordLength = !Number.isNaN(parsedLength)
+    ? parsedLength
+    : DefaultWordLength;
   const language = Languages.includes(languageArg as Language)
     ? (languageArg as Language)
-    : null;
+    : DefaultLanguage;
 
   try {
     const state = await createGame(channel, language, wordLength);
@@ -192,7 +194,7 @@ export const guessWord: CommandProcessor["fn"] = async (
         channel,
         attachments: null,
         text: `<@${user}> guessed their ${prefixedScore} knot ${formatWord(state.answer)}
-  
+
   New knot: ${formatWord(newState.hint)}`,
       });
     }
