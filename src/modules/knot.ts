@@ -1,25 +1,37 @@
 import type { WebClient } from "@slack/web-api";
 import type { CommandProcessor } from "./commands.js";
 import type { Language } from "./words.js";
-import { Languages, getWord, createHint } from "./words.js";
+import {
+  Languages,
+  DefaultLanguage,
+  getWord,
+  createHint,
+  getWordPoints,
+} from "./words.js";
 import { getStorage } from "./storage.js";
 
 const DefaultWordLength = 6;
-const DefaultLanguage: Language = "fi";
 const StorageId = "knot";
 
 const Flags: Record<Language, string> = {
   en: "flag-gb",
   fi: "flag-fi",
+  test: "test_tube",
 } as const;
+
+type UserScores = {
+  points: number;
+  words: string[];
+};
 
 type GameState = {
   channel: string;
   language: Language;
   answer: string;
   hint: string;
+  points: number | undefined;
   usedWords: string[];
-  scores: Record<string, number>;
+  scores: Record<string, UserScores | number | undefined>;
 };
 
 const getGameStorage = (channel: string) => {
@@ -28,9 +40,10 @@ const getGameStorage = (channel: string) => {
 
 const initState = (): GameState => ({
   channel: "",
-  language: "fi",
+  language: DefaultLanguage,
   answer: "",
   hint: "",
+  points: 0,
   usedWords: [],
   scores: {},
 });
@@ -50,6 +63,7 @@ const createGame = async (
     language,
     answer,
     hint: createHint(answer),
+    points: getWordPoints(answer),
     usedWords,
     scores: previousState.scores ?? {},
   };
@@ -79,6 +93,7 @@ const getState = async (channel: string): Promise<GameState> => {
   const storage = await getGameStorage(channel);
   const state = await storage.load(channel);
   if (!state) throw new Error(`Could not load game: ${channel}`);
+  if (!state.points) state.points = getWordPoints(state.answer);
   if (!state.usedWords) state.usedWords = [];
   if (!state.scores) state.scores = {};
   return state;
@@ -107,7 +122,7 @@ export const startGame: CommandProcessor["fn"] = async (
   try {
     const state = await createGame(channel, language, wordLength);
     client.chat.postMessage({
-      text: `<@${user}> started a new game: ${formatWord(state.hint, state.language)}`,
+      text: `<@${user}> started a new game: ${formatWord(state.hint, state.points, state.language)}`,
       channel,
       attachments: null,
     });
@@ -126,11 +141,16 @@ export const startGame: CommandProcessor["fn"] = async (
   }
 };
 
-const formatWord = (word: string | string[], language?: Language): string => {
+const formatWord = (
+  word: string | string[],
+  points?: number,
+  language?: Language,
+): string => {
   const letters = Array.isArray(word) ? word : [...word];
   return (
     letters.map((letter) => `\`${letter.toUpperCase()}\``).join(" ") +
-    (language ? ` :${Flags[language]}:` : "")
+    (language ? ` :${Flags[language]}:` : "") +
+    (typeof points === "number" ? ` (${points} pts)` : "")
   );
 };
 
@@ -140,7 +160,7 @@ const IndexPrefixes = {
   "3": "rd",
 };
 
-const getPrefixedScore = (score: number): string => {
+const getPrefixedNumber = (score: number): string => {
   const [...digits] = [...Math.round(score).toString(10)];
   const prefix = IndexPrefixes[digits[digits.length - 1]] ?? "th";
   return score + prefix;
@@ -150,12 +170,29 @@ const addScore = async (
   state: GameState,
   channel: string,
   user: string,
-): Promise<number> => {
-  if (typeof state.scores[user] !== "number") state.scores[user] = 0;
-  state.scores[user]++;
+): Promise<UserScores> => {
+  const userScores = state.scores[user];
+  const newScores: UserScores = {
+    points: 0,
+    words: [],
+  };
+  if (typeof userScores === "undefined") {
+    // New player
+    newScores.points = state.points;
+    newScores.words = [state.answer];
+  } else if (typeof userScores === "number") {
+    // Player with old data
+    newScores.points = userScores + state.points;
+    newScores.words = [state.answer];
+  } else {
+    // Player with new data
+    newScores.points = userScores.points + state.points;
+    newScores.words.push(state.answer);
+  }
+  state.scores[user] = newScores;
   const storage = await getGameStorage(channel);
   storage.save(channel, state);
-  return state.scores[user];
+  return newScores;
 };
 
 export const guessWord: CommandProcessor["fn"] = async (
@@ -173,7 +210,7 @@ export const guessWord: CommandProcessor["fn"] = async (
   if (sortedGuess !== sortedAnswer) return;
   if (guess.toLowerCase() === state.answer.toLowerCase()) {
     const newScore = await addScore(state, channel, user);
-    const prefixedScore = getPrefixedScore(newScore);
+    const guessCount = getPrefixedNumber(newScore.words.length);
     let newState;
     try {
       newState = await createGame(channel, state.language, state.answer.length);
@@ -196,9 +233,9 @@ export const guessWord: CommandProcessor["fn"] = async (
       client.chat.postMessage({
         channel,
         attachments: null,
-        text: `<@${user}> guessed their ${prefixedScore} knot ${formatWord(state.answer, state.language)}
+        text: `<@${user}> with ${newScore.points} points guessed their ${guessCount} knot: ${formatWord(state.answer)}
 
-New knot: ${formatWord(newState.hint, newState.language)}`,
+New knot: ${formatWord(newState.hint, newState.points, newState.language)}`,
       });
     }
   } else {
