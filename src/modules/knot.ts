@@ -107,7 +107,7 @@ export const startGame: CommandProcessor["fn"] = async (
   try {
     const state = await createGame(channel, language, wordLength);
     client.chat.postMessage({
-      text: `<@${user}> started a new game: ${formatWord(state.hint)} :${Flags[state.language]}:`,
+      text: `<@${user}> started a new game: ${formatWord(state.hint, state.language)}`,
       channel,
       attachments: null,
     });
@@ -126,9 +126,12 @@ export const startGame: CommandProcessor["fn"] = async (
   }
 };
 
-const formatWord = (word: string | string[]): string => {
+const formatWord = (word: string | string[], language?: Language): string => {
   const letters = Array.isArray(word) ? word : [...word];
-  return letters.map((letter) => `\`${letter.toUpperCase()}\``).join(" ");
+  return (
+    letters.map((letter) => `\`${letter.toUpperCase()}\``).join(" ") +
+    (language ? ` :${Flags[language]}:` : "")
+  );
 };
 
 const IndexPrefixes = {
@@ -193,9 +196,9 @@ export const guessWord: CommandProcessor["fn"] = async (
       client.chat.postMessage({
         channel,
         attachments: null,
-        text: `<@${user}> guessed their ${prefixedScore} knot ${formatWord(state.answer)}
+        text: `<@${user}> guessed their ${prefixedScore} knot ${formatWord(state.answer, state.language)}
 
-  New knot: ${formatWord(newState.hint)}`,
+New knot: ${formatWord(newState.hint, newState.language)}`,
       });
     }
   } else {
