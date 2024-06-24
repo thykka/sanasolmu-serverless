@@ -187,7 +187,7 @@ const addScore = async (
   } else {
     // Player with new data
     newScores.points = userScores.points + state.points;
-    newScores.words.push(state.answer);
+    newScores.words = userScores.words.concat(state.answer);
   }
   state.scores[user] = newScores;
   const storage = await getGameStorage(channel);
