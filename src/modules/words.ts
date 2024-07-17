@@ -3,14 +3,22 @@ import { getStorage } from "./storage.js";
 
 const StorageId = "words";
 const WordStorageKey = "words";
-export const Languages = ["en", "fi"] as const;
+export const Languages = ["en", "fi", "test"] as const;
 export type Language = (typeof Languages)[number];
+export const DefaultLanguage: Language = "en";
 
 export const parseLanguage = (language: string): Language =>
-  Languages.find((l) => l === language) ?? "en";
+  Languages.find((l) => l === language) ?? DefaultLanguage;
 
 export const formatWordItem = (word: string, language: Language): string => {
   return word.toLowerCase();
+};
+
+export const getWordPoints = (word: string): number => {
+  return Math.max(
+    1,
+    Math.floor((word.length * Math.log2(Math.pow(word.length, 2))) / 10),
+  );
 };
 
 const getWordStorage = async (language: Language) => {

@@ -188,7 +188,7 @@ const handleMessage = async (
     ts: timestamp,
     subtype,
   } = messageEvent;
-  console.log("Message", messageEvent.text);
+  console.log(">", timestamp, text);
   // We're not interested in any bot messages (prevents infinite loop)
   if (bot_id || app_id) return;
   const [firstBlock] = blocks ?? [];
@@ -205,7 +205,6 @@ const handleMessage = async (
 
 const isValidSlackRequest = async (req: Request, rawBody): Promise<boolean> => {
   const rawTimestamp = req.headers["x-slack-request-timestamp"];
-  console.log(rawTimestamp);
   if (!rawTimestamp || Array.isArray(rawTimestamp) || rawTimestamp.length < 1) {
     console.log("Invalid timestamp", (Date.now() / 1000) | 0);
     return false;

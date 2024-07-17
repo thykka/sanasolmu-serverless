@@ -13,7 +13,7 @@ router.use((request, response, next) => {
   if (request.query.secret !== process.env.ADMIN_SECRET)
     return response.sendStatus(403);
   const [language] = [request.query.language].flat();
-  response.locals.language = parseLanguage(language?.toString() ?? "fi");
+  response.locals.language = parseLanguage(language?.toString());
   next();
 });
 
