@@ -234,6 +234,8 @@ const getUserStats = (
   channel: string,
   user: string
 ): string => {
+  if (!state.scores?.[user]) return `<@${user}> hasn't guessed their first knot yet`;
+  if (typeof state.scores[user] === "number") `<@${user}> has guessed ${state.scores[user]} words.`;
   const { words } = state.scores[user];
   if (
     !Array.isArray(words) ||
@@ -252,7 +254,7 @@ const getUserStats = (
   return `<@${user}> has guessed ${formattedTotal} words. ${formattedAverage} (${formattedExtremes})`;
 };
 
-const formatUserGuessCount = (count: number): string => `${newScore.words.length}${getOrdinal(newScore.words.length)}`;
+const formatUserGuessCount = (count: number): string => `${count}${getOrdinal(count)}`;
 
 export const guessWord: CommandProcessor["fn"] = async (
   client,
