@@ -157,14 +157,19 @@ export const startGame: CommandProcessor["fn"] = async (
   }
 };
 
+const letterize = (input: string | string[]): string => {
+  return (
+    Array.isArray(input) ? input : [...input]
+  ).map((letter) => `\`${letter.toUpperCase()}\``).join(" ");
+};
+
 const formatWord = (
   word: string | string[],
   points?: number,
   language?: Language,
 ): string => {
-  const letters = Array.isArray(word) ? word : [...word];
   return (
-    letters.map((letter) => `\`${letter.toUpperCase()}\``).join(" ") +
+    letterize(word) +
     (language ? ` :${Flags[language]}:` : "") +
     (typeof points === "number" ? ` (${points} pts)` : "")
   );
@@ -210,6 +215,45 @@ const addScore = async (
   return newScores;
 };
 
+export const showStats: CommandProcessor["fn"] = async (
+  client,
+  command,
+  channel,
+  user,
+  timestamp,
+) => {
+  client.chat.postMessage({
+    channel,
+    attachments: null,
+    text: getUserStats(await getState(channel), channel, user),
+  });
+};
+
+const getUserStats = (
+  state: GameState,
+  channel: string,
+  user: string
+): string => {
+  const { words } = state.scores[user];
+  if (
+    !Array.isArray(words) ||
+    words.length === 0
+  ) return `hasn't guessed their first knot yet`;
+  const averageLength = words.reduce((sum, word) => sum + word.length, 0) / words.length;
+  const sortedWords = words.sort((a, b) => b.length - a.length);
+  const shortest = sortedWords[0];
+  const longest = sortedWords[sortedWords.length - 1];
+  const formattedTotal = words.length;
+  const formattedAverage = `Average word length: ${Math.round(averageLength * 10) / 10}`;
+  const formattedExtremes = [
+    `shortest: ${letterize(shortest)} - ${getWordPoints(shortest)}pts`,
+    `longest: ${letterize(longest)} - ${getWordPoints(longest)}pts`,
+  ].join(", ");
+  return `<@${user}> has guessed ${formattedTotal} words. ${formattedAverage} (${formattedExtremes})`;
+};
+
+const formatUserGuessCount = (count: number): string => `${newScore.words.length}${getOrdinal(newScore.words.length)}`;
+
 export const guessWord: CommandProcessor["fn"] = async (
   client,
   command,
@@ -225,7 +269,7 @@ export const guessWord: CommandProcessor["fn"] = async (
   if (sortedGuess !== sortedAnswer) return;
   if (guess.toLowerCase() === state.answer.toLowerCase()) {
     const newScore = await addScore(state, channel, user);
-    const guessCount = `${newScore.words.length}${getOrdinal(newScore.words.length)}`;
+    const guessCount = formatUserGuessCount(newScore.words.length);
     let newState;
     try {
       newState = await createGame(
