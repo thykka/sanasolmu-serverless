@@ -170,16 +170,15 @@ const formatWord = (
   );
 };
 
-const IndexPrefixes = {
-  "1": "st",
-  "2": "nd",
-  "3": "rd",
-};
-
-const getPrefixedNumber = (score: number): string => {
-  const [...digits] = [...Math.round(score).toString(10)];
-  const prefix = IndexPrefixes[digits[digits.length - 1]] ?? "th";
-  return score + prefix;
+const getOrdinal = (input: number): string => {
+  const num = Math.abs(input);
+  const tens = num % 100;
+  if (tens >= 10 && tens <= 20) return "th";
+  const last = num % 10;
+  if (last === 1) return "st";
+  if (last === 2) return "nd";
+  if (last === 3) return "rd";
+  return "th";
 };
 
 const addScore = async (
@@ -226,7 +225,7 @@ export const guessWord: CommandProcessor["fn"] = async (
   if (sortedGuess !== sortedAnswer) return;
   if (guess.toLowerCase() === state.answer.toLowerCase()) {
     const newScore = await addScore(state, channel, user);
-    const guessCount = getPrefixedNumber(newScore.words.length);
+    const guessCount = getOrdinal(newScore.words.length);
     let newState;
     try {
       newState = await createGame(
