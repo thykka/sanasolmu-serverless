@@ -215,6 +215,17 @@ const addScore = async (
   return newScores;
 };
 
+const parseUserFromText = (input?: string): string | null => {
+  if (
+    !(
+      typeof input === "string" &&
+      input.startsWith("<@") &&
+      input.endsWith(">")
+    )
+  ) return null;
+  return input.slice(2, -1);  
+};
+
 export const showStats: CommandProcessor["fn"] = async (
   client,
   command,
@@ -222,10 +233,12 @@ export const showStats: CommandProcessor["fn"] = async (
   user,
   timestamp,
 ) => {
+  const [requestedUser] = command.args;
+  const targetUser = parseUserFromText(requestedUser) ?? user;
   client.chat.postMessage({
     channel,
     attachments: null,
-    text: getUserStats(await getState(channel), channel, user),
+    text: getUserStats(await getState(channel), channel, targetUser),
   });
 };
 
@@ -235,23 +248,27 @@ const getUserStats = (
   user: string
 ): string => {
   if (!state.scores?.[user]) return `<@${user}> hasn't guessed their first knot yet`;
-  if (typeof state.scores[user] === "number") `<@${user}> has guessed ${state.scores[user]} words.`;
-  const { words } = state.scores[user];
+  // legacy check
+  if (typeof state.scores[user] === "number") return `<@${user}> has guessed ${state.scores[user]} words.`;
+  const { words, points } = state.scores[user] as UserScores;
   if (
     !Array.isArray(words) ||
     words.length === 0
   ) return `hasn't guessed their first knot yet`;
-  const averageLength = words.reduce((sum, word) => sum + word.length, 0) / words.length;
-  const sortedWords = words.sort((a, b) => b.length - a.length);
+  const lengthSum = words.reduce((sum, word) => sum + word.length, 0);
+  const averageLength = Math.round(lengthSum / words.length * 10) / 10;
+  const sortedWords = words.sort((a, b) => a.length - b.length);
   const shortest = sortedWords[0];
   const longest = sortedWords[sortedWords.length - 1];
-  const formattedTotal = words.length;
-  const formattedAverage = `Average word length: ${Math.round(averageLength * 10) / 10}`;
-  const formattedExtremes = [
-    `shortest: ${letterize(shortest)} - ${getWordPoints(shortest)}pts`,
-    `longest: ${letterize(longest)} - ${getWordPoints(longest)}pts`,
-  ].join(", ");
-  return `<@${user}> has guessed ${formattedTotal} words. ${formattedAverage} (${formattedExtremes})`;
+  const median = sortedWords[Math.floor(sortedWords.length / 2)].length;
+  return [
+    `<@${user}> has guessed ${words.length} words for a total of ${points} points.`,
+    `Average guess length: ${averageLength}, median guess length: ${median}, total guessed letters: ${lengthSum}`,
+    [
+      `Shortest guess: ${letterize(shortest)} (${getWordPoints(shortest)}pts)`,
+      `longest guess: ${letterize(longest)} (${getWordPoints(longest)}pts)`,
+    ].join(", ")
+  ].join("\n");
 };
 
 const formatUserGuessCount = (count: number): string => `${count}${getOrdinal(count)}`;
