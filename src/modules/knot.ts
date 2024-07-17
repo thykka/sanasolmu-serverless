@@ -225,7 +225,7 @@ export const guessWord: CommandProcessor["fn"] = async (
   if (sortedGuess !== sortedAnswer) return;
   if (guess.toLowerCase() === state.answer.toLowerCase()) {
     const newScore = await addScore(state, channel, user);
-    const guessCount = getOrdinal(newScore.words.length);
+    const guessCount = `${newScore.words.length}${getOrdinal(newScore.words.length)}`;
     let newState;
     try {
       newState = await createGame(
